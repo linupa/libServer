@@ -3,6 +3,7 @@
 import sys
 from clibdb import CLibDB
 import datetime
+import base64
 
 USER_NORMAL  = 0
 USER_OVERDUE = 1
@@ -40,6 +41,8 @@ def dictToString(d, labelOnly = False, valueOnly = False):
 #        if isinstance(d[key], int):
 #            value = str(d[key])
 #        else:
+        if key[0] == '_':
+            continue
         value = f"'{d[key]}'"
 
         if labelOnly:
@@ -80,6 +83,7 @@ class CLibrary:
         for book in data['BOOK']:
             barcode = book['BARCODE']
             self.books[barcode] = book
+
         self.users = dict()
         for user in data['USERS']:
             usercode = user['USER_CODE']
@@ -89,6 +93,7 @@ class CLibrary:
         for rent in data['BOOK_LENT']:
             barcode = rent['BARCODE']
             self.rents[barcode] = rent
+
         self.rentHistory = data['RENTAL_HISTORY'].copy()
 
         self.updateDatabase()
@@ -106,15 +111,35 @@ class CLibrary:
         self.db.close()
 
     def updateDatabase(self):
-        print("Update datebase");
+        print("Update database");
+
+        for key in self.books:
+            book  = self.books[key]
+            book['_STATE'] = BOOK_AVAILABLE
+
+        for key in self.users:
+            self.users[key]["_RENT"] = list()
+
+        for key in self.rents:
+            rent = self.rents[key]
+#            print(rent)
+            barcode = rent['BARCODE']
+            userId = rent['USERS']
+            self.rents[barcode] = rent
+            if userId in self.users:
+                self.users[userId]['_RENT'].append(barcode)
+            self.books[barcode]['_STATE'] = rent['STATS'];
+            self.books[barcode]['_RENT'] = self.rents[barcode]['LENT_DATE']
+            self.books[barcode]['_RETURN'] = self.rents[barcode]['RETURN_DATE']
+
         overdueUser = set()
         for key in self.rents:
             rent = self.rents[key]
             if rent['STATS'] == BOOK_OVERDUE:
-                print(key)
+#                print(key)
                 returnDate = stringToTime(rent['RETURN_DATE'])
                 now = datetime.datetime.now()
-                print(timeToString(returnDate))
+#                print(timeToString(returnDate))
                 if now > returnDate:
                     overdueUser.add(rent['USERS'])
                 else:
@@ -122,18 +147,18 @@ class CLibrary:
                     self.updateRent(rent)
 
             elif rent['STATS'] == BOOK_RENTED:
-                print(key)
+#                print(key)
                 user = rent['USERS']
                 returnDate = stringToTime(rent['RETURN_DATE'])
                 now = datetime.datetime.now()
-                print(timeToString(returnDate, dateOnly=True))
+#                print(timeToString(returnDate, dateOnly=True))
                 if now > returnDate:
                     print(f"Book {key} became overdue")
                     rent['STATS'] = BOOK_OVERDUE
                     self.updateRent(rent)
                     overdueUser.add(rent['USERS'])
 
-        print(overdueUser)
+        print(f"Overdue users: {overdueUser}")
         for key in self.users:
             user = self.users[key]
             modified = False
@@ -199,6 +224,37 @@ class CLibrary:
         print(queryStr)
         self.db.UpdateQuery(queryStr)
 
+    def findUser(self, userId):
+        if userId in self.users:
+            return self.users[userId]
+        else:
+            return None
+
+    def findBook(self, bookId, match = True):
+        if match == 'false':
+            match = False
+        elif match == 'true':
+            match = True
+        if match:
+            print(bookId)
+            if bookId in self.books:
+                return self.books[bookId]
+        else:
+            ret = list()
+            keyword64 = bookId
+            print(keyword64)
+            keywordBin = base64.b64decode(keyword64)
+            print(keywordBin)
+            keyword = keywordBin.decode('UTF8')
+            print(f"Decoded {bookId}")
+            for key in self.books:
+                book = self.books[key]
+                if book['BOOKNAME'].find(keyword) >= 0:
+                    ret.append(book)
+                if len(ret) >= 100:
+                    break
+            return ret
+        return None
 
     def checkOutBook(self, bookKey, userKey):
         print(f"{userKey} rents book {bookKey}")
@@ -239,13 +295,17 @@ class CLibrary:
 
         self.addHistory(self.rents[bookKey], userKey)
 
+        self.updateDatabase()
+
         return "SUCCESS"
 
     def returnBook(self, bookKey):
         print(f"Return {bookKey}")
+        print(self.books[bookKey])
+        print(self.rents[bookKey])
 
         if bookKey not in self.books:
-            return "NOT_AVAILABLE"
+            return "INVALID_BOOK"
 
         if self.rents[bookKey]['STATS'] not in {1, 3}:
             return "NOT_RENTED"

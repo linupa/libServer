@@ -6,6 +6,9 @@ import math
 
 global gVerbose
 gVerbase = False
+WIDTH = 600
+HEIGHT = 800
+
 def Print(arg):
     if gVerbose:
         print(arg)
@@ -14,8 +17,8 @@ def grCmp(g):
     return g[0]
 
 def filterOutliers(lines):
-    upperBound = 800 / 2 + 80
-    lowerBound = 800 / 2 - 80
+    upperBound = HEIGHT / 2 + 80
+    lowerBound = HEIGHT / 2 - 80
     ret = list()
     for line in lines:
         points = line[0]
@@ -44,6 +47,9 @@ def getBarcode(lines):
         elif abs(th) > math.pi * 85 / 180.:
             vl.append(points)
     Print(hl)
+    if len(hl) == 0:
+        return list()
+
     grs = list()
     for i in hl:
         h = hl[i]
@@ -87,6 +93,8 @@ def getBarcode(lines):
 
     Print("barcodes")
     Print(grs)
+    if len(grs) < 2:
+        return list()
     return [grs[0][1], grs[1][1]] + vl
 
 def clearOutside(closed, hl):
@@ -96,8 +104,8 @@ def clearOutside(closed, hl):
     else:
         upper = hl[0]
         lower = hl[1]
-    cv2.rectangle(closed, (0, 0), (600, upper[1]), (0,0,0), -1)
-    cv2.rectangle(closed, (0, 800), (600, lower[3]), (0,0,0), -1)
+    cv2.rectangle(closed, (0, 0), (WIDTH, upper[1]), (0,0,0), -1)
+    cv2.rectangle(closed, (0, HEIGHT), (WIDTH, lower[3]), (0,0,0), -1)
 
     return closed
 
@@ -171,6 +179,17 @@ def getBoundary(box):
 #f = 'image_67163137.JPG'
 #f = 'image.png'
 
+def getStd(line):
+    s = 0.0
+    ss = 0.0
+    l = len(line)
+    for p in line:
+        b = float(p)
+        s += b
+        ss += b * b
+    mean = s / l
+    return ss / l - mean * mean
+
 class OCRTest:
     def readText(self, filename, verbose=False):
         global gVerbose
@@ -178,7 +197,8 @@ class OCRTest:
 
         img = cv2.imread(filename)
 
-        img2 = cv2.resize(img, (600, 800))
+        img2 = cv2.resize(img, (WIDTH, HEIGHT))
+#        img2 = img
 
         gray = cv2.cvtColor(img2, cv2.COLOR_BGR2GRAY)
 
@@ -194,7 +214,7 @@ class OCRTest:
         grad = cv2.subtract(gradX, gradY)
         grad = cv2.convertScaleAbs(grad)
 
-        blurred = cv2.blur(grad, (9,9))
+        blurred = cv2.blur(grad, (11,11))
         (_, thresh) = cv2.threshold(blurred, 150, 255, cv2.THRESH_BINARY)
 
         kernel = np.ones((5,5), np.uint8)
@@ -215,10 +235,9 @@ class OCRTest:
         hl = getBarcode(lines)
         Print(hl)
 
-        closed = clearOutside(closed, hl)
+#        closed = clearOutside(closed, hl)
 
-        cnts = cv2.findContours(closed.copy(), cv2.RETR_EXTERNAL,
-        cv2.CHAIN_APPROX_SIMPLE)
+        cnts = cv2.findContours(closed.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         cnts = imutils.grab_contours(cnts)
         if len(cnts) == 0:
             return ""
@@ -245,50 +264,179 @@ class OCRTest:
         angle =  math.atan2(hor[1], hor[0])
         Print(f'Angle {angle*180/math.pi}')
 
-        textBox = box.copy()
-        Print(f'box {textBox}')
+        barcodeBox = box.copy()
+        Print(f'box {barcodeBox}')
 
         lowerLeft = None
         for i in lower:
             Print(f'{i} {lowerLeft}')
-            if lowerLeft == None or textBox[lowerLeft][0] > textBox[i][0]:
+            if lowerLeft == None or barcodeBox[lowerLeft][0] > barcodeBox[i][0]:
                 lowerLeft = i
         Print(f'lowerLeft {lowerLeft}')
 
-        #rotated = rotate_image(img2, tuple([float(textBox[lowerLeft][0]), float(textBox[lowerLeft][1])]), angle*180/math.pi)
-        rotated = img2
+        rotated = rotate_image(img2, tuple([float(barcodeBox[lowerLeft][0]), float(barcodeBox[lowerLeft][1])]), angle*180/math.pi)
+#        rotated = img2
 
+        textBox = barcodeBox.copy()
         for i in range(4):
             if i in lower:
-                textBox[i] = textBox[i] + ver * 0.6
+                textBox[i] = barcodeBox[i] + ver * 0.6
             else:
-                textBox[i] = textBox[i] + ver + np.array([0, 5])
+                textBox[i] = barcodeBox[i] + ver + np.array([0, 5])
 
         #img3 = img2[textBox[0][1]:textBox[2][1], textBox[0][0]:textBox[1][0]]
         Print(f'{width} x {height}')
         if width < 10 or height < 10:
             return ""
 
-        lf = np.array(textBox[lowerLeft])
+        rotatedGray = cv2.cvtColor(rotated, cv2.COLOR_BGR2GRAY)
+        kernel = np.array([[-1,-1,-1], [-1,9,-1], [-1,-1,-1]])
+        rotatedGray = cv2.filter2D(rotatedGray, -1, kernel)
+
+        lf = np.array(barcodeBox[lowerLeft])
+        print(f"LF {lf}")
+        detections = set()
+        trials = 0
+        left = lf[0]
+        right = lf[0] + int(width)
+        if right >= WIDTH:
+            right = WIDTH
+        '''
+        # Check area above the line
+        stddevs = dict()
+        maxStd = None
+        minStd = None
+        for i in range(5, 40):
+            line = rotatedGray[lf[1] - i, left:right]
+            stddev = getStd(line)
+            stddevs[i] = stddev
+            if not minStd or minStd > stddev:
+                minStd = stddev
+                minIdx = i
+
+        for i in range(5, minIdx+1):
+            line = rotatedGray[lf[1] - i, left:right]
+            stddev = getStd(line)
+            stddevs[i] = stddev
+            if not maxStd or maxStd < stddev:
+                maxStd = stddev
+
+        print(stddevs)
+        upper = maxStd * 0.8
+        lower = minStd * 5
+        print(f"Min/Max {minStd} {maxStd}")
+        print(f"Lower/Upper {lower} {upper}")
+
+        check = False
+        for i in range(5, 40):
+            stddev = stddevs[i]
+            if stddev > upper:
+                check = True
+#            if stddev > lower or not check:
+#                continue
+            img3 = rotatedGray[lf[1]-i:lf[1]+10, left:right]
+            text = pytesseract.image_to_string(img3)
+            trials += 1
+            texts  = text.split("\n")
+            for text in texts:
+                text = text.replace(" ", "").replace("-", "").replace("_","").replace(".","")
+                if len(text) > 0 and len(text) < 20:
+                    detections.add(text)
+
+        # Check area below the line
+        stddevs = dict()
+        maxStd = None
+        minStd = None
+        for i in range(5, 60):
+            line = rotatedGray[lf[1] + i, left:right]
+            stddev = getStd(line)
+            stddevs[i] = stddev
+            if not minStd or minStd > stddev:
+                minStd = stddev
+                minIdx = i
+
+        for i in range(5, minIdx+1):
+            line = rotatedGray[lf[1] - i, left:right]
+            stddev = getStd(line)
+            stddevs[i] = stddev
+            if not maxStd or maxStd < stddev:
+                maxStd = stddev
+        print(stddevs)
+        upper = maxStd * 0.8
+        lower = minStd * 5.0
+        print(f"Min/Max {minStd} {maxStd}")
+        print(f"Lower/Upper {lower} {upper}")
+
+        check = False
+        for i in range(5, 60):
+            stddev = stddevs[i]
+            if stddev > 1000:
+                check = True
+            if stddev > 500 or not check:
+                continue
+            img3 = rotatedGray[lf[1]-10:lf[1]+i, left:right]
+            text = pytesseract.image_to_string(img3)
+            trials += 1
+            texts  = text.split("\n")
+            for text in texts:
+                text = text.replace(" ", "").replace("-", "").replace("_","").replace(".","")
+                if len(text) > 0 and len(text) < 20:
+                    detections.add(text)
+
+        print(detections)
+        print(trials)
+        '''
+
         txtBox = np.array([
             lf,
             lf + np.array([int(width), 0]),
-            lf + np.array([int(width), -int(height*0.6 - 0)]),
-            lf + np.array([0, -int(height*0.6 - 0)])
         ])
-        img3 = rotated[txtBox[2][1]:txtBox[0][1], txtBox[0][0]:txtBox[1][0]]
 
-#        hist = cv2.calcHist(img3, [0], None, [16], [0, 256])
-#        Print(hist)
-        #Print(cv2.minMaxLoc(img3))
 
-        kernel = np.array([[-1,-1,-1], [-1,9,-1], [-1,-1,-1]])
-        img3 = cv2.filter2D(img3, -1, kernel)
+        RATIO = 0.3
+        s = 0.0
+        count = 0
+        height = 40
+        for i in range(60, 5, -1):
+            line = rotatedGray[lf[1] + i, left:right]
+            stddev = getStd(line)
+            if count and s * RATIO / count > stddev:
+                height = i
+                break;
+            s += stddev
+            count += 1
+#        lf[1] += 10
+        print(f"Height {height}")
+        img3 = rotatedGray[lf[1]-int(height):lf[1]+10 , left:right]
+
         text = pytesseract.image_to_string(img3)
+        print(text)
+        texts  = text.split("\n")
+        for text in texts:
+            text = text.replace(" ", "").replace("-", "").replace("_","").replace(".","")
+            if len(text) > 0 and len(text) < 20:
+                detections.add(text)
 
-        text  = text.replace(" ", "").strip()
-        Print(f'text [{text}]')
+        '''
+        height = 80
+        img3 = rotatedGray[lf[1]-int(height):lf[1]+10 , left:right]
+        text = pytesseract.image_to_string(img3)
+        texts  = text.split("\n")
+        for text in texts:
+            text = text.replace(" ", "").replace("-", "").replace("_","").replace(".","")
+            if len(text) > 0 and len(text) < 20:
+                detections.add(text)
 
+        img3 = rotatedGray[lf[1]-10:lf[1]+int(height), left:right]
+        text = pytesseract.image_to_string(img3)
+        texts  = text.split("\n")
+        for text in texts:
+            text = text.replace(" ", "").replace("-", "").replace("_","").replace(".","")
+            if len(text) > 0 and len(text) < 20:
+                detections.add(text)
+        '''
+
+        Print(f'text [{detections}]')
         self.gradX = gradX
         self.gradY = gradY
         self.blurred = blurred
@@ -305,7 +453,7 @@ class OCRTest:
         self.hl = hl
         self.lines = lines
 
-        return text
+        return detections
 
     def display(self):
         gradX = self.gradX
@@ -334,13 +482,13 @@ class OCRTest:
         cv2.imshow('cropped', img3)
         Print(txtBox)
         Print(type(txtBox))
-        cv2.drawContours(rotated, [box], -1, (255, 0, 0), 1)
-        #cv2.drawContours(rotated, [txtBox], -1, (0, 0, 255), 1)
+#        cv2.drawContours(rotated, [box], -1, (255, 0, 0), 1)
+        cv2.drawContours(rotated, [txtBox], -1, (0, 0, 255), 1)
         cv2.imshow('rotated', rotated)
         #cv2.imshow('HF', imghf)
         #cv2.imshow('img', img3)
-        upper = int((800 / 2) + 80)
-        lower = int((800 / 2) - 80)
+        upper = int((HEIGHT / 2) + 80)
+        lower = int((HEIGHT / 2) - 80)
 
         Print(textBox)
         Print(type(textBox))
@@ -361,8 +509,9 @@ class OCRTest:
         #    lines_list.append([(x1,y1),(x2,y2)])
         #cv2.drawContours(img2, [box], -1, (0, 255, 0), 1)
         #cv2.drawContours(img2, [textBox], -1, (0, 0, 255), 3)
-        cv2.line(img2, (1, upper), (600, upper), (0, 0, 255), 1)
-        cv2.line(img2, (1, lower), (600, lower), (0, 0, 255), 1)
+        cv2.line(img2, (1, upper), (WIDTH, upper), (0, 0, 255), 1)
+        cv2.line(img2, (1, lower), (WIDTH, lower), (0, 0, 255), 1)
+        cv2.drawContours(img2, [box], -1, (255, 0, 0), 1)
         cv2.imshow('gray', img2)
 
         #cv2.minMaxLoc(img3)
@@ -373,7 +522,7 @@ class OCRTest:
 
 if __name__ == '__main__':
     ocrTest = OCRTest()
-    ret = ocrTest.readText('image.png', True)
+    ret = ocrTest.readText('image.jpg', True)
 #    if len(ret) > 0:
     ocrTest.display()
 

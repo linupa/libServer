@@ -17,6 +17,10 @@ global mdb
 app = Flask(__name__)
 CORS(app, supports_credentials=True, resources={r"/uploadImage": {"origins": "*"}})
 CORS(app, supports_credentials=True, resources={r"/check": {"origins": "*"}})
+CORS(app, supports_credentials=True, resources={r"/checkOut": {"origins": "*"}})
+CORS(app, supports_credentials=True, resources={r"/return": {"origins": "*"}})
+CORS(app, supports_credentials=True, resources={r"/user": {"origins": "*"}})
+CORS(app, supports_credentials=True, resources={r"/book": {"origins": "*"}})
 
 image = None
 
@@ -33,15 +37,48 @@ image = None
 @app.route('/check', methods=['GET'])
 def check():
     print("Check")
-    return jsonify({'some': 'data'})
+    return jsonify({'Check': 'Connection'})
 
+@app.route('/book', methods=['GET', 'OPTIONS'])
+def findBook():
+    print("Find book")
+    print(request)
+    print(request.args)
+    print(len(request.args))
+    bookId = request.args.get("book", default = "None", type = str)
+    match = request.args.get("match", default = "false", type = str)
+    print(f"Arguments [{bookId}] [{match}]")
+    book = clib.findBook(bookId, match)
+    print(book)
+    ret = dict()
+    if book:
+        ret = book
+    response = jsonify({'return': ret})
+    return response
+
+@app.route('/user', methods=['GET', 'OPTIONS'])
+def findUser():
+    print("Find user")
+    print(request)
+    print(len(request.args))
+    userId = request.args.get("user", default = "None", type = str);
+    user = clib.findUser(userId)
+    print(user)
+    ret = dict()
+    if user:
+        ret = user
+    response = jsonify({'return': ret})
+    return response
 
 @app.route('/checkOut', methods=['POST', 'OPTIONS'])
 def checkOutBook():
     print("Check out")
-    response = jsonify({'some': 'data'})
-    data = json.loads(str(request.data, 'UTF-8'))
-    ret = clib.checkOutBook(bookKey=data['book'], userKey=data['user'])
+    jsonStr = str(request.data, 'UTF-8')
+    print(jsonStr)
+    ret = "FAILURE"
+    if len(jsonStr) > 0:
+        data = json.loads(jsonStr)
+        ret = clib.checkOutBook(bookKey=data['book'], userKey=data['user'])
     response = jsonify({'return': ret})
     return response
 
@@ -49,10 +86,12 @@ def checkOutBook():
 def returnBook():
     print("Return")
     print(str(request.data, 'UTF-8'))
-    print(request.data)
-    data = json.loads(str(request.data, 'UTF-8'))
-    print(data)
-    ret = clib.returnBook(bookKey=data['book'])
+    jsonStr = str(request.data, 'UTF-8')
+    print(jsonStr)
+    ret = "FAILURE"
+    if len(jsonStr) > 0:
+        data = json.loads(jsonStr)
+        ret = clib.returnBook(bookKey=data['book'])
     response = jsonify({'return': ret})
     return response
 
@@ -66,18 +105,25 @@ def uploadImage():
 #    print(len(request.data))
     if len(request.data) > 0:
         data = json.loads(str(request.data, 'UTF-8'))
-        print(data['image'][0:22])
         image = base64.b64decode((data['image'][22:]))
         print(len(image))
         print(type(image))
         print('Load image ' + str(type(image)))
 
-        imgFile = open('image.png', 'wb')
+        imgFile = open('image.jpg', 'wb')
         imgFile.write(image)
         imgFile.close()
         ocrTest = OCRTest()
-        ret = ocrTest.readText('image.png')
-        print(ret)
+        candidates = ocrTest.readText('image.jpg')
+        print(candidates)
+        ret = dict()
+        for candidate in candidates:
+            book = clib.findBook(candidate)
+            if book:
+                ret = book
+                break;
+
+        print(ret);
         response = jsonify({'return': ret})
     return response
 
