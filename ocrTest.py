@@ -509,8 +509,8 @@ class OCRTest:
         #    lines_list.append([(x1,y1),(x2,y2)])
         #cv2.drawContours(img2, [box], -1, (0, 255, 0), 1)
         #cv2.drawContours(img2, [textBox], -1, (0, 0, 255), 3)
-        cv2.line(img2, (1, upper), (WIDTH, upper), (0, 0, 255), 1)
-        cv2.line(img2, (1, lower), (WIDTH, lower), (0, 0, 255), 1)
+#        cv2.line(img2, (1, upper), (WIDTH, upper), (0, 0, 255), 1)
+#        cv2.line(img2, (1, lower), (WIDTH, lower), (0, 0, 255), 1)
         cv2.drawContours(img2, [box], -1, (255, 0, 0), 1)
         cv2.imshow('gray', img2)
 

@@ -2,6 +2,7 @@ import pyodbc
 
 class CLibDB():
     def __init__(self):
+        pyodbc.pooling = False
         self.connection = pyodbc.connect(
             'Driver={SQL Server Native Client 11.0};'
             'Server=(localdb)\\v11.0;'
@@ -10,8 +11,7 @@ class CLibDB():
             'integrated security = true')
         self.connection.setdecoding(pyodbc.SQL_CHAR, encoding='utf-8')
         self.connection.setdecoding(pyodbc.SQL_WCHAR, encoding='utf-16le')
-#        self.connection.setencoding(encoding='utf-8')
-#        self.connection.setencoding(encoding='euc-kr')
+        self.connection.setencoding(encoding='utf-16le', ctype=pyodbc.SQL_WCHAR)
 
     def RunQuery(self, query):
         cursor = self.connection.cursor()
