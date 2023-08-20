@@ -177,7 +177,7 @@ def updateSQL(updates, srcEntries, clib, dbName, keyName):
 
 def updateCloud(updates, srcEntries, dstEntries):
 
-    return
+#    return
 
     print("Add")
     adds = updates[0].copy()
