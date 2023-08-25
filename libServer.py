@@ -199,7 +199,7 @@ def extendBook():
     admin = (ipaddr == "127.0.0.1" or ipaddr == localIp)
     if len(jsonStr) > 0:
         data = json.loads(jsonStr)
-        ret = clib.extendBook(bookKey=data['book'], userKey=data['user'], admin=admin)
+        ret = clib.extendBook(bookKey=data['book'], admin=admin)
     response = jsonify({'return': ret})
     return response
 

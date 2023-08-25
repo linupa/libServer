@@ -87,8 +87,8 @@ def timeToString(t, dateOnly = False):
     else:
         return t.strftime("%Y-%m-%d %H:%M:%S")
 
-def stringToTime(s):
-    if s.find(":") > 0:
+def stringToTime(s, dateOnly = False):
+    if s.find(":") > 0 and not dateOnly:
         form = '%Y-%m-%d %H:%M:%S'
     else:
         form = '%Y-%m-%d'

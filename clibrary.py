@@ -229,6 +229,7 @@ class CLibrary:
             self.books[barcode]['_STATE'] = rent['STATS'];
             self.books[barcode]['_RENT'] = self.rents[barcode]['LENT_DATE']
             self.books[barcode]['_RETURN'] = self.rents[barcode]['RETURN_DATE']
+            self.books[barcode]['_EXTEND_COUNT'] = self.rents[barcode]['EXTEND_COUNT']
 
         overdueUser = set()
         for key in self.rents:
@@ -448,6 +449,7 @@ class CLibrary:
                     book['LENT_DATE'] = rent['LENT_DATE']
                     book['RETURN_DATE'] = rent['RETURN_DATE']
                     book['USER'] = rent['USERS']
+                    book['EXTEND_COUNT'] = rent['EXTEND_COUNT']
                     if rent['USERS'] in self.users:
                         book['USER_NAME'] = self.users[rent['USERS']]['USER_NAME']
 
@@ -513,6 +515,7 @@ class CLibrary:
         self.rents[bookKey]['USERS'] = ""
         self.rents[bookKey]['LENT_DATE'] = ""
         self.rents[bookKey]['RETURN_DATE'] = ""
+        self.rents[bookKey]['EXTEND_COUNT'] = 0
         self.rents[bookKey]['RESERVE_USER'] = ""
         self.rents[bookKey]['RESERVE_DATE'] = ""
 
@@ -571,13 +574,10 @@ class CLibrary:
 
         return "SUCCESS"
 
-    def extendBook(self, bookKey, userKey, admin = False):
-        print(f"{userKey} rents book {bookKey}")
+    def extendBook(self, bookKey, admin = False):
+        print(f"extend book {bookKey}")
         if bookKey not in self.books:
             return "INVALID_BOOK"
-
-        if userKey not in self.users or self.rents[bookKey]['USERS'] != userKey:
-            return "INVALID_USER"
 
         if self.rents[bookKey]['STATS'] not in {BOOK_RENTED, BOOK_OVERDUE}:
             return "NOT_AVAILABLE"
@@ -590,25 +590,27 @@ class CLibrary:
 
             for key in self.rents:
                 rent = self.rents[key]
-                if rent['USERS'] != userKey:
-                    continue
                 if rent['STATS'] == BOOK_OVERDUE:
                     return "OVERDUE"
 
 
-        retDate = now + datetime.timedelta(days=RENT_PERIOD)
+        newRetDate = timeToString(now + datetime.timedelta(days=RENT_PERIOD), True)
+        retDate = self.rents[bookKey]['RETURN_DATE']
+
+        print(f"Compare {retDate} and {newRetDate}")
+        if retDate >= newRetDate:
+            return "NOT_AVAILABLE"
+
         self.rents[bookKey]['STATS'] = BOOK_RENTED
-        self.rents[bookKey]['USERS'] = userKey
-        self.rents[bookKey]['LENT_DATE'] = timeToString(now)
-        self.rents[bookKey]['RETURN_DATE'] = timeToString(retDate, dateOnly=True)
+        self.rents[bookKey]['RETURN_DATE'] = newRetDate
         self.rents[bookKey]['RESERVE_USER'] = ""
         self.rents[bookKey]['RESERVE_DATE'] = ""
-        self.rents[bookKey]['EXTEND_COUNT'] = self.rents[bookyKey]['EXTEND_COUNT'] + 1
+        self.rents[bookKey]['EXTEND_COUNT'] = self.rents[bookKey]['EXTEND_COUNT'] + 1
 
         print(self.rents[bookKey])
         self.updateRent(self.rents[bookKey])
 
-        self.addHistory(self.rents[bookKey], userKey)
+#        self.addHistory(self.rents[bookKey], userKey)
 
         self.updateDatabase()
 
@@ -630,6 +632,7 @@ class CLibrary:
         self.rents[bookKey]['STATS'] = BOOK_AVAILABLE
         self.rents[bookKey]['USERS'] = ""
         self.rents[bookKey]['LENT_DATE'] = ""
+        self.rents[bookKey]['EXTEND_COUNT'] = 0
         self.rents[bookKey]['RETURN_DATE'] = ""
         self.rents[bookKey]['RESERVE_USER'] = ""
         self.rents[bookKey]['RESERVE_DATE'] = ""
