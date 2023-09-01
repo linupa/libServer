@@ -14,7 +14,7 @@ class MongoDB:
 
         print("Done")
 
-        db = self.client.library_test
+        db = self.client.library
 
         serverInfo = db.serverInfo
 
