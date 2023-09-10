@@ -27,6 +27,12 @@ sqlBookDict = {
     'DELETE_YN': 'deleted'
 }
 
+sqlMARCDict = {
+    'SEQ': '_id',
+    'MARC_DATA': 'MARC_DATA',
+    'DELETE_YN': 'DELETE_YN'
+}
+
 sqlUserDict = {
     'SEQ': "seqnum",
     'USER_CODE': "_id",
@@ -113,6 +119,12 @@ def list2dict(srcList: list, key = '_id'):
         keyValue = src[key]
         dstDict[keyValue] = src
     return dstDict
+
+def dict2list(srcDict: dict):
+    dstList = list()
+    for key in srcDict:
+        dstList.append(srcDict[key])
+    return dstList
 
 def dictToString(d, labelOnly = False, valueOnly = False):
     l = list()
@@ -331,32 +343,32 @@ def makeUnique(l: list, key: str = '_id'):
 
     return d
 
-ignoreTag = {"encrypted_email", "encrypted_phone", "state", "modification_date", "USER_STATE", "STATS", "MOD_DATE"}
+ignoreTag = {"encrypted_email", "encrypted_phone", "state", "modification_date", "USER_STATE", "STATS"}
 ignoreTag.update({"attach", "ATTACH", "attach_user", "ATTACH_USER"})
-def compare(gsEntries: dict, mdEntries: dict, conversion:dict = None, log = False):
+def compare(srcEntries: dict, dstEntries: dict, conversion:dict = None, log = False):
     addedList = list()
     modifiedList = list()
     deletedList = list()
 
     if log:
         print("LOG enabled")
-        print(f"{len(gsEntries)} {len(mdEntries)}")
+        print(f"{len(srcEntries)} {len(dstEntries)}")
     flag = set()
-    for key in mdEntries:
+    for key in dstEntries:
         flag.add(key)
     print(len(flag))
 
-#    for gsEntry in gsEntries:
+#    for gsEntry in srcEntries:
 #        key = gsEntry['_id']
-    for key in gsEntries:
-        gsEntry = gsEntries[key]
-        if key not in mdEntries:
+    for key in srcEntries:
+        gsEntry = srcEntries[key]
+        if key not in dstEntries:
 #            if log:
 #                print("=== New entry")
 #                print(gsEntry)
             addedList.append(key)
             continue
-        mdEntry = mdEntries[key]
+        mdEntry = dstEntries[key]
 
         flag.remove(key)
         modified = False
@@ -383,20 +395,20 @@ def compare(gsEntries: dict, mdEntries: dict, conversion:dict = None, log = Fals
         print("Deleted entries")
         for key in flag:
 #            if log:
-#                print(mdEntries[key])
+#                print(dstEntries[key])
             deletedList.append(key)
     print(f'Update Add/Mod/Del {len(addedList)} {len(modifiedList)} {len(deletedList)}')
     if len(addedList) > 0:
-        print(f"Add    {gsEntries[addedList[0]]}")
+        print(f"Add    {srcEntries[addedList[0]]}")
 #        if log:
 #            print(addedList)
     if len(modifiedList) > 0:
-        print(f"Update {gsEntries[modifiedList[0]]}")
-        print(f"       {mdEntries[modifiedList[0]]}")
+        print(f"Update {srcEntries[modifiedList[0]]}")
+        print(f"       {dstEntries[modifiedList[0]]}")
 #        if log:
 #            print(modifiedList)
     if len(deletedList) > 0:
-        print(f"Delete {mdEntries[deletedList[0]]}")
+        print(f"Delete {dstEntries[deletedList[0]]}")
 #        if log:
 #            print(deletedList)
     return [addedList, modifiedList, deletedList]

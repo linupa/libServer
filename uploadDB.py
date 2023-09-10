@@ -18,6 +18,7 @@ def updateMongoDB(mdb, srcDB, log = False):
 def uploadDatabase(clib, db):
     print("Upload database")
     books = convertToMDB(clib.books, '_id', sqlBookDict)
+    marcs = convertToMDB(clib.marcs, '_id', sqlMARCDict)
     users = convertToMDB(clib.users, '_id', sqlUserDict)
     rents = convertToMDB(clib.rents, '_id', sqlRentDict)
     rentlog = convertToMDB(clib.rentHistory, '_id', sqlRentHistoryDict)
@@ -30,6 +31,10 @@ def uploadDatabase(clib, db):
     print("="*80)
     print("Book")
     updateMongoDB(db.book, books)
+
+    print("="*80)
+    print("MARC")
+    updateMongoDB(db.marc, marcs)
 
     print("="*80)
     print("User")

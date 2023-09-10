@@ -37,6 +37,13 @@ def downloadDatabase(clib, db):
         print(rentlog[key])
         break
 
+#    for key in books:
+#        book = books[key]
+#        if "MOD_DATE" not in book or len(book["MOD_DATE"]) == 0:
+#            print(book)
+#            book["MOD_DATE"] = book["REG_DATE"]
+#            print(books[key])
+
     print("="*80)
     print("Book")
     updateDB(clib.books, books, clib, "book", "BARCODE")

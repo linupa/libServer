@@ -89,7 +89,7 @@ def checkRentHistory(rentlog):
 class CLibrary:
     def __init__(self):
         self.db = CLibDB()
-        tables = ('BOOK', 'BOOK_LENT', 'RENTAL_HISTORY', 'USERS'  )
+        tables = ('BOOK', 'BOOK_LENT', 'RENTAL_HISTORY', 'USERS', 'MARC', 'MARC_TAG'  )
 
         data = dict()
         for tableName in tables:
@@ -113,8 +113,8 @@ class CLibrary:
                     entry[label[j]] = item[j]
 
                 table.append(entry)
-#            print(tableName)
-#            print(table)
+            print(tableName)
+            print(len(table))
 #        print(data)
         self.books = dict()
         numBook = 0
@@ -124,6 +124,17 @@ class CLibrary:
             if book['DELETE_YN'] != 'Y':
                 numBook += 1
         print(f"{numBook} books")
+
+        count = 0
+        self.marcs = dict()
+        numMARC = 0
+        for marc in data['MARC']:
+            seq = marc['SEQ']
+            self.marcs[seq] = marc
+            if marc['DELETE_YN'] != 'Y':
+                numMARC += 1
+
+        print(f"{numMARC} MARCs")
 
         self.users = dict()
         numUser = 0
