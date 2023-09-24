@@ -413,6 +413,62 @@ def compare(srcEntries: dict, dstEntries: dict, conversion:dict = None, log = Fa
 #            print(deletedList)
     return [addedList, modifiedList, deletedList]
 
+def checkRentHistory(rentlog, keyMap):
+    idxKey = keyMap["idx"]
+    bookKey = keyMap["book"]
+    stateKey = keyMap["state"]
+    userKey = keyMap["user"]
+    dateKey = keyMap["date"]
+    retKey = keyMap["retDate"]
+
+    print("Check rent history validity...")
+    rentLogList = list()
+    for i in range(len(rentlog)):
+        logCopy = rentlog[i].copy()
+        logCopy[idxKey] = i
+        rentLogList.append(logCopy)
+
+    numCheckout = 0
+    numReturn = 0
+    noReturn = set()
+    for i in range(len(rentLogList)):
+        log = rentLogList[i]
+        idx = log[idxKey]
+        bookId = log[bookKey]
+        state = log[stateKey]
+        timestamp = log[dateKey]
+        user = log[userKey]
+#        if bookId == 'HK10000073':
+#            print(f"{idx} Returned {rentlog[idx]} {type(state)} {log['SEQ']} ~ {log2['SEQ']}")
+        # Skip reservation
+        if state in {2, '2'}:
+            continue
+        if state in {1, '1'}:
+            returned = False
+            otherRent = False
+            numCheckout += 1
+            for j in range(i + 1, len(rentLogList)):
+                log2 = rentLogList[j]
+                if bookId != log2[bookKey]:
+                    continue
+                if log2[stateKey] in {0, '0'} and user == log2[userKey]:
+                    returned = True
+                    break
+                if not otherRent and log2[stateKey] in {1, '1'} and user != log2[userKey]:
+                    otherRent = True
+                    otherRentDate = log2[dateKey]
+            if returned:
+                rentlog[idx][retKey] = log2[dateKey]
+            elif otherRent:
+                rentlog[idx][retKey] = otherRentDate
+            else:
+                noReturn.add(bookId)
+        if state in {0, '0'}:
+            numReturn += 1
+#        if log['SEQ'] == 352:
+#            print(f"{idx} Returned {rentlog[idx]} {type(state)} {log['SEQ']} ~ {log2['SEQ']}")
+    print(f"Checkout: {numCheckout}, Return: {numReturn}, NoReturn: {len(noReturn)}")
+
 '''
 def checkRentHistory(rentlog):
     print("Check rent history validity")

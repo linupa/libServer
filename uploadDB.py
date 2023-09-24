@@ -42,12 +42,19 @@ def uploadDatabase(clib, db):
     updateMongoDB(db.user, users)
 
     print("="*80)
-    print("Rent")
-    updateMongoDB(db.rent, rents)
+    print("RentHistory")
+    rentlog = dict2list(rentlog)
+    keyMap = {"idx": "_id", "book": "book_id", "state": "book_state", "user": "user_id", "date": "timestamp", "retDate": "return_data"}
+    checkRentHistory(rentlog, keyMap)
+    rentlog = list2dict(rentlog)
+    for key in rentlog:
+        print(rentlog[key])
+        break
+    updateMongoDB(db.rentLog, rentlog, log=True)
 
     print("="*80)
-    print("RentHistory")
-    updateMongoDB(db.rentLog, rentlog, log=True)
+    print("Rent")
+    updateMongoDB(db.rent, rents)
 
 if __name__ == '__main__':
     # Read SQL

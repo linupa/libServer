@@ -25,54 +25,6 @@ MAX_EXTEND = 3
 MAX_RENTAL = 5
 RENT_PERIOD = 22
 
-def checkRentHistory(rentlog):
-    print("Check rent history validity...")
-    rentLogList = list()
-    for i in range(len(rentlog)):
-        logCopy = rentlog[i].copy()
-        logCopy['IDX'] = i
-        rentLogList.append(logCopy)
-
-    numCheckout = 0
-    numReturn = 0
-    noReturn = set()
-    for i in range(len(rentLogList)):
-        log = rentLogList[i]
-        idx = log['IDX']
-        bookId = log['BOOK_CODE']
-        state = log['BOOK_STATE']
-        timestamp = log['REG_DATE']
-        user = log['USER_CODE']
-#        if bookId == 'HK10000073':
-#            print(f"{idx} Returned {rentlog[idx]} {type(state)} {log['SEQ']} ~ {log2['SEQ']}")
-        # Skip reservation
-        if state in {2, '2'}:
-            continue
-        if state in {1, '1'}:
-            returned = False
-            otherRent = False
-            numCheckout += 1
-            for j in range(i + 1, len(rentLogList)):
-                log2 = rentLogList[j]
-                if bookId != log2['BOOK_CODE']:
-                    continue
-                if log2['BOOK_STATE'] in {0, '0'} and user == log2['USER_CODE']:
-                    returned = True
-                    break
-                if not otherRent and log2['BOOK_STATE'] in {1, '1'} and user != log2['USER_CODE']:
-                    otherRent = True
-                    otherRentDate = log2['REG_DATE']
-            if returned:
-                rentlog[idx]['RETURN_DATA'] = log2['REG_DATE']
-            elif otherRent:
-                rentlog[idx]['RETURN_DAT'] = otherRentDate
-            else:
-                noReturn.add(bookId)
-        if state in {0, '0'}:
-            numReturn += 1
-#        if log['SEQ'] == 352:
-#            print(f"{idx} Returned {rentlog[idx]} {type(state)} {log['SEQ']} ~ {log2['SEQ']}")
-    print(f"Checkout: {numCheckout}, Return: {numReturn}, NoReturn: {len(noReturn)}")
 
 # BOOK
 #    ['SEQ', 'BARCODE', 'RFID', 'BOOKNAME', 'BOOKNUM', 'AUTHOR', 'TOTAL_NAME', 'CATEGORY', 'AUTHOR_CODE', 'CLAIMNUM', 'COPYNUM', 'EX_CATE', 'ISBN', 'PUBLISH', 'ATTACH', 'CLAIM', 'LOCATION', 'BOOKIN', 'REG_DATE', 'MOD_DATE', 'DELETE_YN']
@@ -281,7 +233,8 @@ class CLibrary:
             if modified:
                 self.updateUser(key)
 
-        checkRentHistory(self.rentHistory)
+        keyMap = {"idx": "IDX", "book": "BOOK_CODE", "state": "BOOK_STATE", "user": "USER_CODE", "date": "REG_DATE", "retDate": "RETURN_DATE"}
+        checkRentHistory(self.rentHistory, keyMap)
 
 
     def updateUserState(self, userKey, state):

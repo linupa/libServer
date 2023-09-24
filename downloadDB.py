@@ -24,6 +24,10 @@ def downloadDatabase(clib, db):
     for key in books:
         print(books[key])
         break
+    marcs = convertToSQL(db.marc, "SEQ", sqlMARCDict)
+    for key in marcs:
+        print(marcs[key])
+        break
     users = convertToSQL(db.user, "USER_CODE", sqlUserDict)
     for key in users:
         print(users[key])
@@ -49,7 +53,15 @@ def downloadDatabase(clib, db):
     updateDB(clib.books, books, clib, "book", "BARCODE")
 
     print("="*80)
+    print("MARC")
+    updateDB(clib.marcs, marcs, clib, "marc", "SEQ")
+
+    print("="*80)
     print("User")
+    for key in users:
+        user = users[key]
+        if 'DELETE_YN' not in user:
+            user['DELETE_YN'] = "N"
     updateDB(clib.users, users, clib, "users", "USER_CODE")
 
     print("="*80)
@@ -61,6 +73,12 @@ def downloadDatabase(clib, db):
 
     print("="*80)
     print("RentHistory")
+    for entry in clib.rentHistory:
+        regDate = entry['REG_DATE']
+        if len(regDate) == 18:
+            print(regDate)
+            regDate = regDate[0:11] + "0" + regDate[11:]
+            print(regDate)
     updateDB(list2dict(clib.rentHistory, "SEQ"), rentlog, clib, "rental_history", "SEQ")
 
     checkUnique(rentlog, "SEQ")
