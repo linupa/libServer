@@ -72,8 +72,8 @@ sqlRentHistoryDict = {
     'BOOK_CODE': "book_id",
     'BOOK_STATE': "book_state",
     'USER_CODE': "user_id",
-    'REG_DATE': "timestamp"
-#    'RETURN_DATA': "return_data"
+    'REG_DATE': "timestamp",
+    '_RETURN_DATE': "return_date"
 }
 def logKey(entry, key='timestamp'):
     return datetime.datetime.strptime(entry[key], "%Y-%m-%d %H:%M:%S")
@@ -221,6 +221,7 @@ def updateCloud(updates, srcEntries, dstEntries):
         dstEntries.update_one(query, newValue)
         if (count%100) == 0:
             print(count)
+        print(newValue)
         count +=1
 
 def encryptUserInfo(users):
@@ -301,8 +302,8 @@ def checkUnique(src, key: str = '_id'):
                 print(f"Duplicated ID {keyValue} {ids[keyValue]}->{entry['REG_DATE']}")
             else:
                 ids[entry[key]] = entry['REG_DATE']
-            if entry[key] >= 6693 and entry[key] <= 6701:
-                print(entry)
+#            if entry[key] >= 6693 and entry[key] <= 6701:
+#                print(entry)
     elif type(src) == dict:
         for srcKey in src:
             entry = src[srcKey]
@@ -343,7 +344,7 @@ def makeUnique(l: list, key: str = '_id'):
 
     return d
 
-ignoreTag = {"encrypted_email", "encrypted_phone", "state", "modification_date", "USER_STATE", "STATS"}
+ignoreTag = {"encrypted_email", "encrypted_phone", "modification_date"}
 ignoreTag.update({"attach", "ATTACH", "attach_user", "ATTACH_USER"})
 def compare(srcEntries: dict, dstEntries: dict, conversion:dict = None, log = False):
     addedList = list()
@@ -353,24 +354,24 @@ def compare(srcEntries: dict, dstEntries: dict, conversion:dict = None, log = Fa
     if log:
         print("LOG enabled")
         print(f"{len(srcEntries)} {len(dstEntries)}")
-    flag = set()
+    dstFlag = set()
     for key in dstEntries:
-        flag.add(key)
-    print(len(flag))
+        dstFlag.add(key)
+    print(len(dstFlag))
 
 #    for gsEntry in srcEntries:
 #        key = gsEntry['_id']
     for key in srcEntries:
         gsEntry = srcEntries[key]
-        if key not in dstEntries:
-#            if log:
-#                print("=== New entry")
-#                print(gsEntry)
+        if key not in dstFlag:
+            if log:
+                print("=== New entry")
+                print(gsEntry)
             addedList.append(key)
             continue
         mdEntry = dstEntries[key]
 
-        flag.remove(key)
+        dstFlag.remove(key)
         modified = False
         for label in gsEntry:
             if conversion:
@@ -386,20 +387,24 @@ def compare(srcEntries: dict, dstEntries: dict, conversion:dict = None, log = Fa
                     print(f'Label {mLabel} is not in MongoDB')
                 modified = True
             elif gsEntry[label] != mdEntry[mLabel]:
-                if log:
-                    print(f'Value for label {label}/{mLabel} is different')
+#                if log:
+#                    print(f'Value for label {label}/{mLabel} is different')
+                modified = True
+            if "return_data" in mdEntry:
                 modified = True
         if modified:
             modifiedList.append(key)
-    if len(flag) > 0:
+    if len(dstFlag) > 0:
         print("Deleted entries")
-        for key in flag:
+        for key in dstFlag:
 #            if log:
 #                print(dstEntries[key])
             deletedList.append(key)
     print(f'Update Add/Mod/Del {len(addedList)} {len(modifiedList)} {len(deletedList)}')
     if len(addedList) > 0:
         print(f"Add    {srcEntries[addedList[0]]}")
+#    for entry in addedList:
+#        print(srcEntries[entry])
 #        if log:
 #            print(addedList)
     if len(modifiedList) > 0:
@@ -413,7 +418,7 @@ def compare(srcEntries: dict, dstEntries: dict, conversion:dict = None, log = Fa
 #            print(deletedList)
     return [addedList, modifiedList, deletedList]
 
-def checkRentHistory(rentlog, keyMap):
+def checkRentHistory(rentlog: list, keyMap: dict):
     idxKey = keyMap["idx"]
     bookKey = keyMap["book"]
     stateKey = keyMap["state"]
@@ -430,7 +435,7 @@ def checkRentHistory(rentlog, keyMap):
 
     numCheckout = 0
     numReturn = 0
-    noReturn = set()
+    noReturn = dict()
     for i in range(len(rentLogList)):
         log = rentLogList[i]
         idx = log[idxKey]
@@ -462,12 +467,13 @@ def checkRentHistory(rentlog, keyMap):
             elif otherRent:
                 rentlog[idx][retKey] = otherRentDate
             else:
-                noReturn.add(bookId)
+                noReturn[bookId] = user
         if state in {0, '0'}:
             numReturn += 1
 #        if log['SEQ'] == 352:
 #            print(f"{idx} Returned {rentlog[idx]} {type(state)} {log['SEQ']} ~ {log2['SEQ']}")
     print(f"Checkout: {numCheckout}, Return: {numReturn}, NoReturn: {len(noReturn)}")
+    return noReturn
 
 '''
 def checkRentHistory(rentlog):
@@ -518,9 +524,9 @@ def checkRentHistory(rentlog):
                     otherRent = True
                     otherRentDate = log2['timestamp']
             if returned:
-                rentlog[seqId]['return_data'] = log2['timestamp']
+                rentlog[seqId]['return_date'] = log2['timestamp']
             elif otherRent:
-                rentlog[seqId]['return_data'] = otherRentDate
+                rentlog[seqId]['return_date'] = otherRentDate
             else:
                 noReturn.add(bookId)
         if state in {0, '0'}:

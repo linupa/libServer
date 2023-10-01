@@ -43,6 +43,7 @@ class CLibrary:
         self.db = CLibDB()
         tables = ('BOOK', 'BOOK_LENT', 'RENTAL_HISTORY', 'USERS', 'MARC', 'MARC_TAG'  )
 
+        self.labels = dict()
         data = dict()
         for tableName in tables:
             data[tableName] = list()
@@ -54,6 +55,8 @@ class CLibrary:
             label = list()
             for j in range(len(labels)):
                 label.append(labels[j][3])
+            self.labels[tableName] = label
+            print(f"=== {tableName} ===")
             print(label)
 
             query = f"select * from {tableName}"
@@ -233,7 +236,7 @@ class CLibrary:
             if modified:
                 self.updateUser(key)
 
-        keyMap = {"idx": "IDX", "book": "BOOK_CODE", "state": "BOOK_STATE", "user": "USER_CODE", "date": "REG_DATE", "retDate": "RETURN_DATE"}
+        keyMap = {"idx": "IDX", "book": "BOOK_CODE", "state": "BOOK_STATE", "user": "USER_CODE", "date": "REG_DATE", "retDate": "_RETURN_DATE"}
         checkRentHistory(self.rentHistory, keyMap)
 
 
@@ -357,10 +360,13 @@ class CLibrary:
         self.db.UpdateQuery(queryStr)
 
     def findUser(self, userId):
-        if userId in self.users:
-            return self.users[userId]
-        else:
-            return None
+        prefix = userId[0:2]
+        suffix = userId[2:]
+        for i in range(5):
+            newId = prefix + "0" * i + suffix
+            if newId in self.users:
+                return self.users[newId]
+        return None
 
     def findUsers(self, userText):
         ret = list()
@@ -433,6 +439,8 @@ class CLibrary:
                     continue
                 if book['BOOKNAME'].find(keyword) >= 0:
                     ret.append(book)
+                if book['ISBN'] == keyword:
+                    ret.append(book)
                 if len(ret) >= 100:
                     break
         return ret
@@ -444,7 +452,7 @@ class CLibrary:
         print(period)
         for log in self.rentHistory:
 #            log = self.rentHistory[key]
-            if log['BOOK_STATE'] != 1 or 'RETURN_DATA' not in log:
+            if log['BOOK_STATE'] != 1 or '_RETURN_DATE' not in log:
                 continue
 #            if period not in log['REG_DATE']:
 #                continue
@@ -455,7 +463,8 @@ class CLibrary:
             bookId = log['BOOK_CODE']
             entry.update(self.books[bookId])
             entry['RENT_DATE'] = log['REG_DATE']
-            entry['RETURN_DATE'] = log['RETURN_DATA']
+            if '_RETURN_DATE' in log:
+                entry['_RETURN_DATE'] = log['_RETURN_DATE']
             userId = log['USER_CODE']
             entry['USER'] = userId
             if userId in self.users:

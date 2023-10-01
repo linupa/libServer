@@ -89,8 +89,8 @@ if __name__ == '__main__':
     clib.db.UpdateQuery("delete from rental_history")
 
     for entry in newList:
-        if "RETURN_DATA" in entry:
-            del entry["RETURN_DATA"]
+        if "RETURN_DATE" in entry:
+            del entry["RETURN_DATE"]
         label = dictToString(entry, labelOnly = True)
         value = dictToString(entry, valueOnly = True)
         queryStr = f"insert into rental_history ({label}) values ({value})"
