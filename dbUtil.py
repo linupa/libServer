@@ -199,7 +199,7 @@ def updateCloud(updates, srcEntries, dstEntries):
             key = adds.pop(0)
             newEntries.append(srcEntries[key])
         if len(newEntries) > 0:
-            print(len(adds))
+            print(f"\rRemaining {len(adds)}", end="", flush=True)
             dstEntries.insert_many(newEntries)
 
     count = 0
@@ -208,7 +208,7 @@ def updateCloud(updates, srcEntries, dstEntries):
         query = {'_id': key}
         dstEntries.delete_one(query)
         if (count%100) == 0:
-            print(count)
+            print(f"\rRemaining {count}", end="", flush=True)
         count +=1
 
     count = 0
@@ -220,8 +220,8 @@ def updateCloud(updates, srcEntries, dstEntries):
             newValue["$set"][label] = srcEntries[key][label]
         dstEntries.update_one(query, newValue)
         if (count%100) == 0:
-            print(count)
-        print(newValue)
+            print(f"\rRemaining {count}", end="", flush=True)
+#        print(newValue)
         count +=1
 
 def encryptUserInfo(users):

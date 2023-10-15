@@ -51,7 +51,11 @@ def checkBook(mongoDb):
                 states[state] = 1
 
     numValid = len(books) - numDeleted
-    print(f"{numValid} / {len(books)}")
+    numAvail = numValid
+    for state in states:
+        numAvail -= states[state]
+
+    print(f"{numAvail} / {numValid} / {len(books)}")
     print(states)
 
     for key in rents:

@@ -19,27 +19,7 @@ def downloadBook(clib, db):
     updateDB(clib.books, books, clib, "book", "BARCODE")
 
 def downloadDatabase(clib, db):
-    print("Downlaod database")
-    books = convertToSQL(db.book, "BARCODE", sqlBookDict)
-    for key in books:
-        print(books[key])
-        break
-    marcs = convertToSQL(db.marc, "SEQ", sqlMARCDict)
-    for key in marcs:
-        print(marcs[key])
-        break
-    users = convertToSQL(db.user, "USER_CODE", sqlUserDict)
-    for key in users:
-        print(users[key])
-        break
-    rents = convertToSQL(db.rent, "BARCODE", sqlRentDict)
-    for key in rents:
-        print(rents[key])
-        break
-    rentlog = convertToSQL(db.rentLog, "SEQ", sqlRentHistoryDict)
-    for key in rentlog:
-        print(rentlog[key])
-        break
+    print("Download database")
 
 #    for key in books:
 #        book = books[key]
@@ -50,14 +30,17 @@ def downloadDatabase(clib, db):
 
     print("="*80)
     print("Book")
+    books = convertToSQL(db.book, "BARCODE", sqlBookDict)
     updateDB(clib.books, books, clib, "book", "BARCODE")
 
     print("="*80)
     print("MARC")
+    marcs = convertToSQL(db.marc, "SEQ", sqlMARCDict)
     updateDB(clib.marcs, marcs, clib, "marc", "SEQ")
 
     print("="*80)
     print("User")
+    users = convertToSQL(db.user, "USER_CODE", sqlUserDict)
     for key in users:
         user = users[key]
         if 'DELETE_YN' not in user:
@@ -66,6 +49,7 @@ def downloadDatabase(clib, db):
 
     print("="*80)
     print("Rent")
+    rents = convertToSQL(db.rent, "BARCODE", sqlRentDict)
     for key in books:
         if key not in rents:
             rents[key] = {'SEQ': books[key]['SEQ'], 'BARCODE': key, 'STATS': 0, 'USERS': '', 'LENT_DATE': '', 'RETURN_DATE': '', 'RESERVE_USER': '', 'RESERVE_DATE': '', 'EXTEND_COUNT': 0, 'DELETE_YN': books[key]['DELETE_YN'], 'ATTACH': 'N', 'ATTACH_USER': ''}
@@ -73,6 +57,7 @@ def downloadDatabase(clib, db):
 
     print("="*80)
     print("RentHistory")
+    rentlog = convertToSQL(db.rentLog, "SEQ", sqlRentHistoryDict)
     for entry in clib.rentHistory:
         regDate = entry['REG_DATE']
         if len(regDate) == 18:

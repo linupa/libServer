@@ -74,7 +74,7 @@ if __name__ == '__main__':
     # Open MongoDB
     print(connection)
     client = MongoClient(connection)
-    db = client.library_test
+    db = client.library
 
     uploadDatabase(clib, db)
 
