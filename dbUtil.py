@@ -201,6 +201,7 @@ def updateCloud(updates, srcEntries, dstEntries):
         if len(newEntries) > 0:
             print(f"\rRemaining {len(adds)}", end="", flush=True)
             dstEntries.insert_many(newEntries)
+        print("")
 
     count = 0
     print("Delete")
@@ -210,6 +211,7 @@ def updateCloud(updates, srcEntries, dstEntries):
         if (count%100) == 0:
             print(f"\rRemaining {count}", end="", flush=True)
         count +=1
+    print("")
 
     count = 0
     print("Update")
@@ -223,6 +225,8 @@ def updateCloud(updates, srcEntries, dstEntries):
             print(f"\rRemaining {count}", end="", flush=True)
 #        print(newValue)
         count +=1
+    print("")
+
 
 def encryptUserInfo(users):
     prk = rsa.PrivateKey.load_pkcs1(Config['key'],'PEM')

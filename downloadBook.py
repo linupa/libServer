@@ -15,8 +15,16 @@ def updateDB(currDb, srcDb, dstDb, dbName, dbKey, log = False):
     updateSQL(updates, srcDb, dstDb, dbName, dbKey)
 
 def downloadBook(clib, db):
+    print("="*80)
+    print("Book")
     books = convertToSQL(db.book, "BARCODE", sqlBookDict)
     updateDB(clib.books, books, clib, "book", "BARCODE")
+
+    print("="*80)
+    print("MARC")
+    marcs = convertToSQL(db.marc, "SEQ", sqlMARCDict)
+    updateDB(clib.marcs, marcs, clib, "marc", "SEQ")
+
 
 def downloadDatabase(clib, db):
     print("Download database")

@@ -12,8 +12,6 @@ connection = Config['connection'].format(password)
 
 def updateMongoDB(mdb, srcDB, log = False):
     mdbDict = mdb2dict(mdb)
-    if "AB0354" in mdbDict:
-        print(mdbDict["AB0354"])
     updates = compare(srcDB, mdbDict, log=log)
     updateCloud(updates, srcDB, mdb)
 
@@ -30,11 +28,6 @@ def uploadDatabase(clib, db):
         if rents[key]['state'] in {0, "0"}:
             del rents[key]
 
-    for key in rentlog:
-        rent = rentlog[key]
-        if rent["book_id"] == "HK10002064":
-            print(rent)
-
     print("="*80)
     print("Book")
     updateMongoDB(db.book, books)
@@ -46,8 +39,6 @@ def uploadDatabase(clib, db):
     print("="*80)
     print("User")
     encryptUserInfo(users)
-    print(users["AB0354"])
-    print(db.user["AB0354"])
 
     updateMongoDB(db.user, users)
 
@@ -57,9 +48,6 @@ def uploadDatabase(clib, db):
     keyMap = {"idx": "_id", "book": "book_id", "state": "book_state", "user": "user_id", "date": "timestamp", "retDate": "return_date"}
     checkRentHistory(rentlog, keyMap)
     rentlog = list2dict(rentlog)
-    for key in rentlog:
-        if rentlog[key]["book_id"] == 'HK10002064':
-            print(rentlog[key])
     updateMongoDB(db.rentLog, rentlog, log=True)
 
     print("="*80)
