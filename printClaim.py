@@ -17,7 +17,7 @@ connection = Config['connection'].format(password)
 htmlStr1 = [
 '<html lang="en">'
 '<head>'
-'<title> Clain </title>',
+'<title> Claim </title>',
 '<style>',
 'table {',
 '    border-collapse: collapse;',
@@ -25,6 +25,7 @@ htmlStr1 = [
 'tr {'
 '}',
 'td.claim {',
+'    font-family: gulim;',
 '    border: 2px solid lightgray;',
 '    width: 100px;',
 '    height: 100;',
@@ -33,6 +34,7 @@ htmlStr1 = [
 '    font-size: 90%;',
 '}',
 'td.barcode {',
+'    font-family: gulim;',
 '    border: 2px solid lightgray;',
 '    width: 100px;',
 '    height: 30px;',
@@ -64,7 +66,12 @@ if __name__ == '__main__':
         exit(-1)
 
     checkDate = sys.argv[1]
+    toDate = None
+    if len(sys.argv) >= 3:
+        toDate = sys.argv[2]
+
     print(checkDate)
+    print(toDate)
 
     # Open MongoDB
     print(connection)
@@ -84,7 +91,7 @@ if __name__ == '__main__':
             continue
 
         regDate = book["REG_DATE"][0:10]
-        if regDate == checkDate:
+        if regDate == checkDate or (toDate and regDate >= checkDate and regDate <= toDate):
             showBooks.append(book)
         count += 1
     showBooks.sort(key=bookKey)
@@ -96,7 +103,7 @@ if __name__ == '__main__':
             rows.append(list())
             lastRow = rows[-1]
         lastRow.append(book)
-
+    print(f"{len(showBooks)} book(s) added on {regDate}")
     with codecs.open("claim.html", "w", "utf-8") as f:
         for entry in htmlStr1:
             f.write(entry + "\n")
