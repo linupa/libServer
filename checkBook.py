@@ -66,7 +66,7 @@ if __name__ == '__main__':
     # Open MongoDB
     print(connection)
     client = MongoClient(connection)
-    mongoDb = client.library_test
+    mongoDb = client.library
 
     checkBook(mongoDb)
 

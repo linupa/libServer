@@ -30,7 +30,7 @@ def compareHistory(orig, modi):
 
 if __name__ == '__main__':
     client = MongoClient(connection)
-    db = client.library_test
+    db = client.library
 
     rentHistory = mdb2list(db.rentLog)
     print(rentHistory[0])
