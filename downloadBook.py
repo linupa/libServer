@@ -2,6 +2,7 @@ from pymongo import MongoClient
 from config import Config
 from clibrary import CLibrary
 from dbUtil import *
+from marc import MARC
 
 import dns.resolver
 dns.resolver.default_resolver=dns.resolver.Resolver(configure=False)
@@ -32,6 +33,20 @@ def downloadDatabase(clib, db):
     print("MARC")
     marcs = convertToSQL(db.marc, "SEQ", sqlMARCDict)
     updateDB(clib.marcs, marcs, clib, "marc", "SEQ")
+
+    idx = 0
+    for key in marcs:
+        m = MARC(marcs[key]["MARC_DATA"])
+        for entry in m.entries:
+            if entry[0] == "049":
+                item = entry[4]
+                if item["l"][0:3] != "HK0":
+                    break
+                if "f" in item and item["f"] != "아동":
+                    print(m.entries)
+                    idx += 1
+
+    print(idx)
 
     print("="*80)
     print("Rent")

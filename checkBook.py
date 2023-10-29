@@ -44,7 +44,7 @@ def checkBook(mongoDb):
                 print(rents[key])
         if seqnum in rents:
             state = rents[seqnum]['state']
-            print(f"{key}: {state}")
+#            print(f"{key}: {state}")
             if state in states:
                 states[state] += 1
             else:
@@ -55,7 +55,7 @@ def checkBook(mongoDb):
     for state in states:
         numAvail -= states[state]
 
-    print(f"{numAvail} / {numValid} / {len(books)}")
+    print(f"Avaiable {numAvail} / Valld {numValid} / All {len(books)} / Deleted {numDeleted}")
     print(states)
 
     for key in rents:

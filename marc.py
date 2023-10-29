@@ -40,4 +40,30 @@ class MARC:
 
 
         for i in range(len(self.entries)):
-            self.entries[i].append(dataEntries[i])
+            code = dataEntries[i][0:2]
+            data = dataEntries[i][2:]
+            idx = 0
+            items = dict()
+            key = None
+            item = ""
+            while idx < len(data):
+                c = data[idx]
+                if c == "$":
+                    if key:
+                        items[key] = item
+                    idx +=1
+                    key = data[idx]
+                    item = ""
+                elif c == "%":
+                    if key:
+                        items[key] = item
+                    break
+                else:
+                    item += c
+
+                idx += 1
+            self.entries[i].append(code)
+            if len(items) > 0:
+                self.entries[i].append(items)
+            else:
+                self.entries[i].append(data)

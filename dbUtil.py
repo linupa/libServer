@@ -100,11 +100,15 @@ def stringToTime(s, dateOnly = False):
         form = '%Y-%m-%d'
     return datetime.datetime.strptime(s, form)
 
-def mdb2dict(srcList: list, key = '_id'):
+def mdb2dict(srcList: list, key = '_id', callback = None, interval = 1000):
     dstDict = dict()
+    count = 0
     for src in srcList.find():
         keyValue = src[key]
         dstDict[keyValue] = src
+        if callback and count % interval == 0:
+            callback(count)
+        count += 1
     return dstDict
 
 def mdb2list(srcList: list, key = '_id'):
@@ -273,13 +277,13 @@ def convertToMDB(fromDb: dict, key: str, conversion: dict):
 
     return converted
 
-def convertToSQL(mdb, key, revConv: dict):
+def convertToSQL(mdb, key, revConv: dict, callback = None, interval = 100):
     conversion = dict()
     for convKey in revConv:
         value = revConv[convKey]
         conversion[value] = convKey
 
-    mdbDict = mdb2dict(mdb)
+    mdbDict = mdb2dict(mdb, callback= callback, interval= interval)
 
     dstDict = dict()
     for mdbKey in mdbDict:
