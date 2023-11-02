@@ -2,6 +2,7 @@ from pymongo import MongoClient
 from config import Config
 from clibrary import CLibrary
 from dbUtil import *
+from marc import MARC
 
 import dns.resolver
 dns.resolver.default_resolver=dns.resolver.Resolver(configure=False)
@@ -36,6 +37,33 @@ def downloadDatabase(clib, db):
     print("="*80)
     print("MARC")
     marcs = convertToSQL(db.marc, "SEQ", sqlMARCDict)
+    matchCount = 0
+    mismatchCount = 0
+    failCount = 0
+    for key in marcs:
+        orgMarc = marcs[key]["MARC_DATA"]
+        try:
+            marc = MARC(orgMarc, debug=False)
+            marc.decode()
+            marc.check()
+            newMarc = marc.encode()
+            marcs[key]["MARC_DATA"] = newMarc
+            if bytes(orgMarc, "UTF-8") != bytes(newMarc, "UTF-8"):
+                print("=" * 30 + "Mismatch" + "="*30)
+                print(f"{len(orgMarc)} [{orgMarc}]")
+                print(f"{len(newMarc)} [{newMarc}]")
+                mismatchCount += 1
+                for i in range(len(orgMarc)):
+                    if orgMarc[i] != newMarc[i]:
+                        print(f"{i}: {orgMarc[i]} - {newMarc[i]}")
+                        break
+            else:
+                matchCount += 1
+        except Exception as e:
+            print(f"Failed to decode MARC {e}")
+            print(orgMarc)
+            failCount += 1
+    print(f"Same {matchCount} / Change {mismatchCount} / Fail {failCount} / Total {len(marcs)}")
     updateDB(clib.marcs, marcs, clib, "marc", "SEQ")
 
     print("="*80)

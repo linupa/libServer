@@ -15,5 +15,6 @@ text = {
     "bookName": "도서명",
     "claim": "청구기호",
     "regDate": "등록일",
-    "claimPrinter": "청구기호 출력"
+    "claimPrinter": "청구기호 출력",
+    "kid": "아동"
 }

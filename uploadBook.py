@@ -2,6 +2,7 @@ from pymongo import MongoClient
 from config import Config
 from clibrary import CLibrary
 from dbUtil import *
+from marc import MARC
 
 import dns.resolver
 dns.resolver.default_resolver=dns.resolver.Resolver(configure=False)
@@ -52,6 +53,11 @@ def uploadDatabase(clib, mongoDb):
         newBooks[key]["seqnum"] = lastSeq
         newMARCs[lastSeq] = marcs[seq].copy()
         newMARCs[lastSeq]["_id"] = lastSeq
+        orgMarc = newMARCs[lastSeq]["MARC_DATA"]
+        marc = MARC(orgMarc)
+        marc.decode()
+        marc.check()
+        newMARCs[lastSeq]["MARC_DATA"] = marc.encode()
         newMARCIds.append(lastSeq)
         print(newBooks[key])
         print(newMARCs[lastSeq])
