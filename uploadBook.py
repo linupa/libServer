@@ -1,8 +1,12 @@
+import sys
+import os
+import codecs
 from pymongo import MongoClient
 from config import Config
 from clibrary import CLibrary
 from dbUtil import *
 from marc import MARC
+import webbrowser
 
 import dns.resolver
 dns.resolver.default_resolver=dns.resolver.Resolver(configure=False)
@@ -11,7 +15,50 @@ dns.resolver.default_resolver.nameservers=['8.8.8.8']
 password = Config['password']
 connection = Config['connection'].format(password)
 
-def uploadDatabase(clib, mongoDb):
+htmlStr1 = [
+'<html lang="en">'
+'<head>'
+'<title> Upload Books </title>',
+'<style>',
+'table {',
+'    border-collapse: collapse;',
+'}',
+'tr {'
+'}',
+'td.claim {',
+'    font-family: gulim;',
+'    border: 2px solid lightgray;',
+'    width: 100px;',
+'    height: 100;',
+'    text-align: center;',
+'    margin: 0px;',
+'    font-size: 90%;',
+'    border: 2px solid lightgray;',
+'}',
+'td.barcode {',
+'    font-family: gulim;',
+'    border: 2px solid lightgray;',
+'    width: 100px;',
+'    height: 30px;',
+'    text-align: center;',
+'    margin: 0px;',
+'    font-size: 90%;',
+'}',
+'@media print',
+'{',
+'.pagebreak {page-break-before:always}',
+'}',
+'</style>',
+'</head>'
+'<body>'
+]
+
+htmlStr2 = [
+'</tbody></table>'
+'</body>'
+]
+
+def uploadDatabase(clib, mongoDb, debug = True):
     print("Upload database")
     books = convertToMDB(clib.books, '_id', sqlBookDict)
     marcs = convertToMDB(clib.marcs, '_id', sqlMARCDict)
@@ -95,19 +142,51 @@ def uploadDatabase(clib, mongoDb):
 #    print(newMARCs)
 #    delBook = ['HK00006647', 'HK00006648', 'HK00006649', 'HK00006650', 'HK10004732', 'HK10004923', 'HK10004924', 'HK10004925', 'HK10004927', 'HK10004928', 'HK10004929', 'HK10004930', 'HK10004931', 'HK50001293', 'HK10004932', 'HK10004933', 'HK10004934', 'HK10004935', 'HK10004936', 'HK10004937', 'HK10004938', 'HK10004939', 'HK10004940', 'HK10004941', 'HK10004942', 'HK10004943', 'HK10004944', 'HK10004945', 'HK10004946']
 #    updateCloud([list(), list(), delBook], newBooks, mongoDb.book)
-    updateCloud([newBookIds, list(), list()], newBooks, mongoDb.book)
-    updateCloud([newMARCIds, list(), list()], newMARCs, mongoDb.marc)
+    if not debug:
+        updateCloud([newBookIds, list(), list()], newBooks, mongoDb.book)
+        updateCloud([newMARCIds, list(), list()], newMARCs, mongoDb.marc)
+    else:
+        print("Only for debugging. do not upload")
+
+    return newBooks
+
+def printResult(newBooks):
+    filename = 'file://' + os.getcwd() + "/" + 'result.html'
+    try:
+        with codecs.open("result.html", "w", "utf-8") as f:
+            for entry in htmlStr1:
+                f.write(entry + "\n")
+
+            for key in newBooks:
+                book = newBooks[key]
+                f.write(f'<td class="claim"> {book["_id"]} </td>\n')
+                f.write(f'<td class="claim"> {book["title"]} </td>\n')
+                f.write(f'<td class="claim"> {book["isbn"]} </td>\n')
+                f.write("</tr>\n")
+
+            for entry in htmlStr2:
+                f.write(entry + "\n")
+        webbrowser.open_new_tab(filename)
+    except Exception as e:
+        print(f"failed {e}`")
 
 if __name__ == '__main__':
     # Read SQL
     clib = CLibrary()
     print("Got clib")
 
+    debug = False
+    if len(sys.argv) >= 2 and sys.argv[1] == "debug":
+        debug = True
+
     # Open MongoDB
     print(connection)
     client = MongoClient(connection)
     mongoDb = client.library
 
-    uploadDatabase(clib, mongoDb)
+    newBooks = uploadDatabase(clib, mongoDb, debug = debug)
+
+    print(newBooks)
+    printResult(newBooks)
 
 

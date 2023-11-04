@@ -1,3 +1,4 @@
+import sys
 from pymongo import MongoClient
 from config import Config
 from clibrary import CLibrary
@@ -17,7 +18,7 @@ def updateMongoDB(mdb, srcDB, log = False, debug = False):
     if not debug:
         updateCloud(updates, srcDB, mdb)
 
-def uploadDatabase(clib, db):
+def uploadDatabase(clib, db, debug = False):
     print("Upload database")
     books = convertToMDB(clib.books, '_id', sqlBookDict)
     marcs = convertToMDB(clib.marcs, '_id', sqlMARCDict)
@@ -32,7 +33,7 @@ def uploadDatabase(clib, db):
 
     print("="*80)
     print("Book")
-    updateMongoDB(db.book, books, debug = False)
+    updateMongoDB(db.book, books, debug = debug)
 
     print("="*80)
     print("MARC")
@@ -56,13 +57,13 @@ def uploadDatabase(clib, db):
             print(orgMarc)
             failCount += 1
     print(f"Same {matchCount} / Change {mismatchCount} / Fail {failCount} / Total {len(marcs)}")
-    updateMongoDB(db.marc, marcs, debug = False)
+    updateMongoDB(db.marc, marcs, debug = debug)
 
     print("="*80)
     print("User")
     encryptUserInfo(users)
 
-    updateMongoDB(db.user, users, debug = False)
+    updateMongoDB(db.user, users, debug = debug)
 
     print("="*80)
     print("RentHistory")
@@ -70,22 +71,26 @@ def uploadDatabase(clib, db):
     keyMap = {"idx": "_id", "book": "book_id", "state": "book_state", "user": "user_id", "date": "timestamp", "retDate": "return_date"}
     checkRentHistory(rentlog, keyMap)
     rentlog = list2dict(rentlog)
-    updateMongoDB(db.rentLog, rentlog, log=True, debug = False)
+    updateMongoDB(db.rentLog, rentlog, log=True, debug = debug)
 
     print("="*80)
     print("Rent")
-    updateMongoDB(db.rent, rents, debug = False)
+    updateMongoDB(db.rent, rents, debug = debug)
 
 if __name__ == '__main__':
     # Read SQL
     clib = CLibrary()
     print("Got clib")
 
+    debug = False
+    if len(sys.argv) >= 2 and sys.argv[1] == "debug":
+        debug = True
+
     # Open MongoDB
     print(connection)
     client = MongoClient(connection)
     db = client.library
 
-    uploadDatabase(clib, db)
+    uploadDatabase(clib, db, debug = debug)
 
 
