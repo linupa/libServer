@@ -192,6 +192,9 @@ class CLibrary:
             self.rents[barcode] = rent
             if userId in self.users:
                 self.users[userId]['_RENT'].append(barcode)
+            if barcode not in self.books:
+                print(f"Cannot find book {barcode}")
+                continue
             self.books[barcode]['_STATE'] = rent['STATS'];
             self.books[barcode]['_RENT'] = self.rents[barcode]['LENT_DATE']
             self.books[barcode]['_RETURN'] = self.rents[barcode]['RETURN_DATE']

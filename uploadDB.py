@@ -11,10 +11,11 @@ dns.resolver.default_resolver.nameservers=['8.8.8.8']
 password = Config['password']
 connection = Config['connection'].format(password)
 
-def updateMongoDB(mdb, srcDB, log = False):
+def updateMongoDB(mdb, srcDB, log = False, debug = False):
     mdbDict = mdb2dict(mdb)
     updates = compare(srcDB, mdbDict, log=log)
-    updateCloud(updates, srcDB, mdb)
+    if not debug:
+        updateCloud(updates, srcDB, mdb)
 
 def uploadDatabase(clib, db):
     print("Upload database")
@@ -31,7 +32,7 @@ def uploadDatabase(clib, db):
 
     print("="*80)
     print("Book")
-    updateMongoDB(db.book, books)
+    updateMongoDB(db.book, books, debug = False)
 
     print("="*80)
     print("MARC")
@@ -55,13 +56,13 @@ def uploadDatabase(clib, db):
             print(orgMarc)
             failCount += 1
     print(f"Same {matchCount} / Change {mismatchCount} / Fail {failCount} / Total {len(marcs)}")
-    updateMongoDB(db.marc, marcs)
+    updateMongoDB(db.marc, marcs, debug = False)
 
     print("="*80)
     print("User")
     encryptUserInfo(users)
 
-    updateMongoDB(db.user, users)
+    updateMongoDB(db.user, users, debug = False)
 
     print("="*80)
     print("RentHistory")
@@ -69,11 +70,11 @@ def uploadDatabase(clib, db):
     keyMap = {"idx": "_id", "book": "book_id", "state": "book_state", "user": "user_id", "date": "timestamp", "retDate": "return_date"}
     checkRentHistory(rentlog, keyMap)
     rentlog = list2dict(rentlog)
-    updateMongoDB(db.rentLog, rentlog, log=True)
+    updateMongoDB(db.rentLog, rentlog, log=True, debug = False)
 
     print("="*80)
     print("Rent")
-    updateMongoDB(db.rent, rents)
+    updateMongoDB(db.rent, rents, debug = False)
 
 if __name__ == '__main__':
     # Read SQL

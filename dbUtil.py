@@ -213,7 +213,7 @@ def updateCloud(updates, srcEntries, dstEntries):
         query = {'_id': key}
         dstEntries.delete_one(query)
         if (count%100) == 0:
-            print(f"\rRemaining {count}", end="", flush=True)
+            print(f"\rProgress {count}", end="", flush=True)
         count +=1
     print("")
 
@@ -226,7 +226,7 @@ def updateCloud(updates, srcEntries, dstEntries):
             newValue["$set"][label] = srcEntries[key][label]
         dstEntries.update_one(query, newValue)
         if (count%100) == 0:
-            print(f"\rRemaining {count}", end="", flush=True)
+            print(f"\rProgress {count}", end="", flush=True)
 #        print(newValue)
         count +=1
     print("")
@@ -396,7 +396,8 @@ def compare(srcEntries: dict, dstEntries: dict, conversion:dict = None, log = Fa
                 modified = True
             elif gsEntry[label] != mdEntry[mLabel]:
 #                if log:
-#                    print(f'Value for label {label}/{mLabel} is different')
+#                   print(f'{key} Value for label {label}/{mLabel} is different')
+#                   print(f"{gsEntry[label]} != {mdEntry[mLabel]}")
                 modified = True
             if "return_data" in mdEntry:
                 modified = True

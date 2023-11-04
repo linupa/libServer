@@ -13,68 +13,14 @@ class MARC:
         if debug:
             print(marcString)
         self.debug = debug
-        self.numBytes = 0
-        self.numUni = 0
         self.marc = marcString.replace(begin, "").replace(end, "")
         self.marc = self.marc.replace("\x1d", "").replace(BEGIN, begin).replace(END, end)
         self.marc = self.marc.replace("\xa1\xea", "").replace("\xa1\xe3", "\r").replace("\xa1\xe5", "\n")
         self.marc = self.marc.replace("↔", "").replace("▲", end).replace("▼", begin)
-        marcLen = 0
         if self.debug:
             print(bytes(self.marc, ENCODING))
-#            print(f"euc-kr length: {len(bytes(self.marc, ENCODING))}")
             print(self.marc)
-        for c in self.marc:
-            try:
-                clen = len(bytes(c, ENCODING))
-            except Exception as e:
-                clen = 2
 
-            if clen > 1:
-                self.numUni += 1
-                self.numBytes += 2
-            else:
-                self.numBytes += 1
-            marcLen += clen
-        if self.debug:
-            print(marcLen)
-        self.header = self.marc[0:24]
-
-        for i in range(len(self.marc) - 24):
-            if self.marc[i + 24] == end:
-                break
-        directory = self.marc[24:24+i]
-        numDir = int(i / 12)
-        idx = 24
-        self.entries = list()
-        for i in range(numDir):
-            f1 = self.marc[idx:idx+3]
-            idx += 3
-            f2 = int(self.marc[idx:idx+4])
-            idx += 4
-            f3 = int(self.marc[idx:idx+5])
-            idx += 5
-            if self.debug:
-                print(f"{f1} {f2} {f3}")
-            self.entries.append([f1, f2, f3])
-
-        data = self.marc[idx+1:]
-        startIdx = 0
-        dataEntries = list()
-        for i in range(len(data)):
-            if data[i] == end:
-               dataEntries.append(data[startIdx:i + 1])
-               startIdx = i + 1
-        #print(dataEntries)
-        if self.debug:
-            print(f"Directory: {directory}")
-            print(dataEntries)
-            print(len(self.entries))
-
-        self.entries = list()
-        for i in range(len(self.entries)):
-#            self.entries[i] = self.decodeGroup(dataEntries[i])
-            self.entries.append(self.decodeGroup(dataEntries[i]))
 
     def decodeGroup(self, group):
         code = group[0:2]
@@ -207,6 +153,16 @@ class MARC:
         for entry in self.groups:
             if entry[0] == group:
                 return entry
+        else:
+            return None
+
+    def getValue(self, group, value, default = ""):
+        group = self.findGroup(group)
+        if group and value in group[2]:
+            value = group[2][value]
+        else:
+            value = default
+        return value.strip()
 
     def check(self):
         group = self.findGroup("049")[2]
@@ -216,5 +172,23 @@ class MARC:
             print("Has no KID")
 #            print(self.marc)
             group["f"] = text["kid"]
+
+    def getBookInfo(self):
+        info = dict()
+        info["BARCODE"] = self.getValue("049", "l")
+        info["EX_CATE"] = self.getValue("049", "f")
+        info["ISBN"] = self.getValue("020", "a")
+        info["AUTHOR"] = self.getValue("245", "d")
+
+        info["CATEGORY"] = self.getValue("056", "a")
+        info["PUBLISH"] = self.getValue("260", "b")
+        info["TOTAL_NAME"] = self.getValue("440", "a")
+        info["AUTHOR_CODE"] = self.getValue("090", "b")
+        info["CLAIMNUM"] = self.getValue("090", "c")
+        info["COPYNUM"] = self.getValue("049", "c")
+
+        info["CLAIM"] = "_".join((info["EX_CATE"], info["CATEGORY"], info["AUTHOR_CODE"], info["CLAIMNUM"], info["COPYNUM"])).strip()
+
+        return info
 
 

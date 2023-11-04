@@ -32,7 +32,6 @@ def downloadDatabase(clib, db):
     print("="*80)
     print("Book")
     books = convertToSQL(db.book, "BARCODE", sqlBookDict)
-    updateDB(clib.books, books, clib, "book", "BARCODE")
 
     print("="*80)
     print("MARC")
@@ -40,14 +39,16 @@ def downloadDatabase(clib, db):
     matchCount = 0
     mismatchCount = 0
     failCount = 0
-    for key in marcs:
-        orgMarc = marcs[key]["MARC_DATA"]
+    for key in books:
+        book = books[key]
+        seq = book["SEQ"]
+        orgMarc = marcs[seq]["MARC_DATA"]
         try:
             marc = MARC(orgMarc, debug=False)
             marc.decode()
             marc.check()
             newMarc = marc.encode()
-            marcs[key]["MARC_DATA"] = newMarc
+            marcs[seq]["MARC_DATA"] = newMarc
             if bytes(orgMarc, "UTF-8") != bytes(newMarc, "UTF-8"):
                 print("=" * 30 + "Mismatch" + "="*30)
                 print(f"{len(orgMarc)} [{orgMarc}]")
@@ -59,12 +60,20 @@ def downloadDatabase(clib, db):
                         break
             else:
                 matchCount += 1
+            bookInfo = marc.getBookInfo()
+            if bookInfo["BARCODE"] == key:
+                book.update(bookInfo)
+            else:
+                print(f"ERROR: barcode does not match")
+                print(books[key])
+                print(mercs[seq])
         except Exception as e:
             print(f"Failed to decode MARC {e}")
             print(orgMarc)
             failCount += 1
     print(f"Same {matchCount} / Change {mismatchCount} / Fail {failCount} / Total {len(marcs)}")
-    updateDB(clib.marcs, marcs, clib, "marc", "SEQ")
+
+
 
     print("="*80)
     print("User")
@@ -73,7 +82,6 @@ def downloadDatabase(clib, db):
         user = users[key]
         if 'DELETE_YN' not in user:
             user['DELETE_YN'] = "N"
-    updateDB(clib.users, users, clib, "users", "USER_CODE")
 
     print("="*80)
     print("Rent")
@@ -81,7 +89,6 @@ def downloadDatabase(clib, db):
     for key in books:
         if key not in rents:
             rents[key] = {'SEQ': books[key]['SEQ'], 'BARCODE': key, 'STATS': 0, 'USERS': '', 'LENT_DATE': '', 'RETURN_DATE': '', 'RESERVE_USER': '', 'RESERVE_DATE': '', 'EXTEND_COUNT': 0, 'DELETE_YN': books[key]['DELETE_YN'], 'ATTACH': 'N', 'ATTACH_USER': ''}
-    updateDB(clib.rents, rents, clib, "book_lent", "BARCODE")
 
     print("="*80)
     print("RentHistory")
@@ -92,6 +99,13 @@ def downloadDatabase(clib, db):
             print(regDate)
             regDate = regDate[0:11] + "0" + regDate[11:]
             print(regDate)
+
+    print("="*80)
+    print("Update DBs")
+    updateDB(clib.books, books, clib, "book", "BARCODE")
+    updateDB(clib.marcs, marcs, clib, "marc", "SEQ")
+    updateDB(clib.users, users, clib, "users", "USER_CODE")
+    updateDB(clib.rents, rents, clib, "book_lent", "BARCODE")
     updateDB(list2dict(clib.rentHistory, "SEQ"), rentlog, clib, "rental_history", "SEQ")
 
     checkUnique(rentlog, "SEQ")
