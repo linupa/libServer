@@ -20,6 +20,11 @@ htmlStr1 = [
 '<head>'
 '<title> Upload Books </title>',
 '<style>',
+'.title{',
+'    font-family: gulim;',
+'	 font-size: 30px;',
+'    text-align: center;',
+'}',
 'table {',
 '    border-collapse: collapse;',
 '}',
@@ -28,8 +33,8 @@ htmlStr1 = [
 'td.claim {',
 '    font-family: gulim;',
 '    border: 2px solid lightgray;',
-'    width: 100px;',
-'    height: 100;',
+'    width: 200px;',
+'    height: 50px;',
 '    text-align: center;',
 '    margin: 0px;',
 '    font-size: 90%;',
@@ -49,8 +54,10 @@ htmlStr1 = [
 '.pagebreak {page-break-before:always}',
 '}',
 '</style>',
-'</head>'
-'<body>'
+'</head>',
+'<body>',
+'<div class="title"> 신규 서적 등록 완료</div>',
+'<table></tbody>'
 ]
 
 htmlStr2 = [

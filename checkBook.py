@@ -43,6 +43,9 @@ def checkBook(mongoDb):
                 print(f"Deleted book has a state")
                 print(book)
                 print(rents[key])
+        else:
+            if key[0:2] != "HK":
+                print(f"Invalid ID {key}")
         if seqnum in rents:
             state = rents[seqnum]['state']
 #            print(f"{key}: {state}")
