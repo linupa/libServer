@@ -17,12 +17,12 @@ class KeyInput:
 
     def on_press(self, key):
         if key == Key.enter:
-            print(self.buffer)
+            print(f"[{self.buffer}]")
             self.scannedValue = self.buffer
             self.buffer = str()
         elif str(key).replace("'","") == "\\x03":
             print("Break")
-            return False
+#            return False
         else:
             try:
                 value = str(key).replace("'","")

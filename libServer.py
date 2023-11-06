@@ -51,6 +51,7 @@ image = None
 
 @app.route('/check', methods=['GET'])
 def check():
+    print("=" * 80)
     print("Check")
     ipaddr = request.remote_addr
     print(ipaddr)
@@ -66,6 +67,7 @@ def check():
 
 @app.route('/book', methods=['GET', 'OPTIONS'])
 def findBook():
+    print("=" * 80)
     print("Find book")
     ipaddr = request.remote_addr
     print(request)
@@ -94,6 +96,7 @@ def findBook():
 
 @app.route('/history', methods=['GET', 'OPTIONS'])
 def getHistory():
+    print("=" * 80)
     print("Get history")
     ipaddr = request.remote_addr
     print(request)
@@ -112,6 +115,7 @@ def getHistory():
 
 @app.route('/user', methods=['GET', 'OPTIONS'])
 def findUser():
+    print("=" * 80)
     print("Find user")
     ipaddr = request.remote_addr
     print(request)
@@ -127,25 +131,9 @@ def findUser():
     response = jsonify({'return': ret})
     return response
 
-@app.route('/user', methods=['POST'])
-def updateUser():
-    print("Update user")
-    print(request)
-    print(request.args)
-    print(request.data)
-    jsonStr = str(request.data, 'UTF-8')
-    data = json.loads(jsonStr)
-    for key in data:
-        base64value = data[key]
-        data[key] = base64.b64decode(base64value).decode('utf-8')
-
-    print(f"Arguments [{data}]")
-    ret = clib.updateUserInfo(data)
-    response = jsonify({"return": "OK" if ret else "FAIL"})
-    return response
-
 @app.route('/users', methods=['GET', 'OPTIONS'])
 def findUsers():
+    print("=" * 80)
     print("Find users")
     ipaddr = request.remote_addr
     print(request)
@@ -161,8 +149,27 @@ def findUsers():
     response = jsonify({'return': ret})
     return response
 
+@app.route('/user', methods=['POST'])
+def updateUser():
+    print("=" * 80)
+    print("Update user")
+    print(request)
+    print(request.args)
+    print(request.data)
+    jsonStr = str(request.data, 'UTF-8')
+    data = json.loads(jsonStr)
+    for key in data:
+        base64value = data[key]
+        data[key] = base64.b64decode(base64value).decode('utf-8')
+
+    print(f"Arguments [{data}]")
+    ret = clib.updateUserInfo(data)
+    response = jsonify({"return": "OK" if ret else "FAIL"})
+    return response
+
 @app.route('/book', methods=['POST'])
 def setBook():
+    print("=" * 80)
     print("POST book")
     ipaddr = request.remote_addr
     jsonStr = str(request.data, 'UTF-8')
@@ -177,6 +184,7 @@ def setBook():
 
 @app.route('/checkOut', methods=['POST', 'OPTIONS'])
 def checkOutBook():
+    print("=" * 80)
     print("Check out")
     ipaddr = request.remote_addr
     jsonStr = str(request.data, 'UTF-8')
@@ -191,6 +199,7 @@ def checkOutBook():
 
 @app.route('/extend', methods=['POST', 'OPTIONS'])
 def extendBook():
+    print("=" * 80)
     print("Extend")
     ipaddr = request.remote_addr
     jsonStr = str(request.data, 'UTF-8')
@@ -205,8 +214,9 @@ def extendBook():
 
 @app.route('/return', methods=['POST', 'OPTIONS'])
 def returnBook():
+    print("=" * 80)
     print("Return")
-    print(str(request.data, 'UTF-8'))
+    print(f"[{str(request.data, 'UTF-8')}]")
     jsonStr = str(request.data, 'UTF-8')
     print(jsonStr)
     ret = "FAILURE"
@@ -220,6 +230,7 @@ def returnBook():
 @cross_origin()
 def uploadImage():
     global image
+    print("=" * 80)
     print("image uploaded")
 #    response = jsonify({'return': "OK"})
 #    response.headers.add('Access-Control-Allow-Origin', '*')
