@@ -427,6 +427,15 @@ def compare(srcEntries: dict, dstEntries: dict, conversion:dict = None, log = Fa
 #            print(deletedList)
     return [addedList, modifiedList, deletedList]
 
+def logCompare(log):
+    if "timestamp" in log:
+        return log["timestamp"]
+    elif "date" in log:
+        return log["date"]
+    else:
+        return 0
+
+
 def checkRentHistory(rentlog: list, keyMap: dict):
     idxKey = keyMap["idx"]
     bookKey = keyMap["book"]
@@ -434,6 +443,8 @@ def checkRentHistory(rentlog: list, keyMap: dict):
     userKey = keyMap["user"]
     dateKey = keyMap["date"]
     retKey = keyMap["retDate"]
+
+    rentlog.sort(key=logCompare)
 
     print("Check rent history validity...")
     rentLogList = list()
