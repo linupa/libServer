@@ -23,6 +23,7 @@ class MongoDB:
         values["$set"]["globalIp"] = globalIp
         values["$set"]["localIp"] = localIp
         values["$set"]["port"] = 8080
+        values["$set"]["proxy"] = False
         print("Server Info " + str(values["$set"]))
         serverInfo.update_one(query, values)
 
