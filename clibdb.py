@@ -1,13 +1,19 @@
 import pyodbc
+from sys import platform
 
 class CLibDB():
     def __init__(self):
         pyodbc.pooling = False
+        if platform == "linux":
+            dbPath = "/mnt/c/CLIB/Data/CLIB.mdf"
+        else:
+            dbPath = "C:\CLIB\Data\CLIB.mdf"
+        drivers = pyodbc.drivers()
+        driver = drivers[-1]
         self.connection = pyodbc.connect(
-            'Driver={SQL Server Native Client 11.0};'
+            'Driver={' + driver + '};'
             'Server=(localdb)\\v11.0;'
-            'AttachDbFileName=C:\CLIB\Data\CLIB.mdf;'
-#            'AttachDbFileName=./CLIB.mdf'
+            'AttachDbFileName=' + dbPath + ';'
             'integrated security = true')
         self.connection.setdecoding(pyodbc.SQL_CHAR, encoding='utf-8')
         self.connection.setdecoding(pyodbc.SQL_WCHAR, encoding='utf-16le')

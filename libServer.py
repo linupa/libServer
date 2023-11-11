@@ -9,7 +9,7 @@ import time
 from clibrary import CLibrary
 import signal
 from mongodb import MongoDB
-from ocrTest import OCRTest
+#from ocrTest import OCRTest
 from keyInput import KeyInput
 from dbUtil import *
 import requests
@@ -60,7 +60,7 @@ def check():
     print(localIp)
     ret = dict()
     ret['check'] = 'Connection'
-    ret['admin'] = (ipaddr == "127.0.0.1" or ipaddr == localIp)
+    ret['admin'] = (ipaddr == "127.0.0.1" or ipaddr == localIp or ipaddr[0:7] != localIp[0:7])
     ret['dueDate'] = clib.getDueDate()
 
     return jsonify(ret)
@@ -226,6 +226,7 @@ def returnBook():
     response = jsonify({'return': ret})
     return response
 
+'''
 @app.route('/uploadImage', methods=['POST', 'OPTIONS', 'GET'])
 @cross_origin()
 def uploadImage():
@@ -258,6 +259,7 @@ def uploadImage():
         print(ret);
         response = jsonify({'return': ret})
     return response
+'''
 
 @app.route('/scanBarcode', methods=['OPTIONS', 'GET'])
 @cross_origin()
@@ -315,7 +317,8 @@ if __name__ == '__main__':
     signal.signal(signal.SIGINT,handler)
 
 #    webbrowser.open("https://tinyurl.com/hkmcclibtest")
-    from waitress import serve
+#    from waitress import serve
 #    serve(app, host="0.0.0.0", port=8080)
 #    serve(app, host="0.0.0.0", port=8080, url_scheme='https')
+#    app.run(host='0.0.0.0', port=8080)
     app.run(host='0.0.0.0', ssl_context=('cert.pem', 'key.pem'), port=8080)

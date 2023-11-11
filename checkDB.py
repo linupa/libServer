@@ -38,9 +38,13 @@ def checkDB(mongoDb):
     print("Check DB")
     numDeleted = 0
     states = dict()
+    seqNums = set()
     for key in books:
         book = books[key]
         seqnum = book["seqnum"]
+        if seqnum in seqNums:
+            print(f"Duplicated seqNum {seqnum}")
+        seqNums.add(seqnum)
         if seqnum not in marcs:
             print(f"MARC for {key} is missing")
             print(book)
@@ -61,6 +65,17 @@ def checkDB(mongoDb):
             state = rents[seqnum]['state']
 #            print(f"{key}: {state}")
             states[state] = states[state] + 1 if state in states else 1
+
+    print("Check MARC")
+    for seqnum in marcs:
+        if seqnum not in seqNums:
+            print(f"Seq {seqnum} does not exist")
+
+    print("Check rents")
+    for seqnum in rents:
+        if seqnum not in seqNums:
+            print(f"Seq {seqnum} does not exist")
+
 
     booksFromMarc = dict()
     matchCount = 0
@@ -87,6 +102,7 @@ def checkDB(mongoDb):
     print(f"Same {matchCount} / Change {mismatchCount} / Fail {failCount} / Total {len(marcs)}")
     booksFromMarc = convertToMDB(booksFromMarc, "_id", sqlBookDict)
 
+    print("Compare Book and MARC")
     for key in booksFromMarc:
         marcBook = booksFromMarc[key]
         mdbBook = books[key]
