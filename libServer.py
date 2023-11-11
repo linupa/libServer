@@ -49,6 +49,7 @@ image = None
 #
 #    return response
 
+@app.route('/', methods=['GET'])
 @app.route('/check', methods=['GET'])
 def check():
     print("=" * 80)
@@ -60,7 +61,8 @@ def check():
     print(localIp)
     ret = dict()
     ret['check'] = 'Connection'
-    ret['admin'] = (ipaddr == "127.0.0.1" or ipaddr == localIp or ipaddr[0:7] != localIp[0:7])
+#    ret['admin'] = (ipaddr == "127.0.0.1" or ipaddr == localIp or ipaddr[0:7] != localIp[0:7])
+    ret['admin'] = ("os" in request.args and "win" in request.args["os"].lower())
     ret['dueDate'] = clib.getDueDate()
 
     return jsonify(ret)
@@ -89,7 +91,8 @@ def findBook():
     elif userId != "None":
         book = clib.findBook(userId=userId)
         ret['books'] = book
-    ret['admin'] = (ipaddr == "127.0.0.1" or ipaddr == localIp)
+#    ret['admin'] = (ipaddr == "127.0.0.1" or ipaddr == localIp)
+    ret['admin'] = ("os" in request.args and "win" in request.args["os"].lower())
     print(ret)
     response = jsonify({'return': ret})
     return response
@@ -108,7 +111,8 @@ def getHistory():
     ret = dict()
     book = clib.getHistory(period = period)
     ret['books'] = book
-    ret['admin'] = (ipaddr == "127.0.0.1" or ipaddr == localIp)
+#    ret['admin'] = (ipaddr == "127.0.0.1" or ipaddr == localIp)
+    ret['admin'] = ("os" in request.args and "win" in request.args["os"].lower())
     print(ret)
     response = jsonify({'return': ret})
     return response
@@ -125,7 +129,8 @@ def findUser():
     user = clib.findUser(userId)
     print(user)
     ret = dict()
-    ret['admin'] = (ipaddr == "127.0.0.1" or ipaddr == localIp)
+#    ret['admin'] = (ipaddr == "127.0.0.1" or ipaddr == localIp)
+    ret['admin'] = ("os" in request.args and "win" in request.args["os"].lower())
     if user:
         ret = user
     response = jsonify({'return': ret})
@@ -143,7 +148,8 @@ def findUsers():
     users = clib.findUsers(userId)
 #    print(users)
     ret = dict()
-    ret['admin'] = (ipaddr == "127.0.0.1" or ipaddr == localIp)
+#    ret['admin'] = (ipaddr == "127.0.0.1" or ipaddr == localIp)
+    ret['admin'] = ("os" in request.args and "win" in request.args["os"].lower())
     if users:
         ret['data'] = users
     response = jsonify({'return': ret})
@@ -174,7 +180,9 @@ def setBook():
     ipaddr = request.remote_addr
     jsonStr = str(request.data, 'UTF-8')
     ret = "FAILURE"
-    admin = (ipaddr == "127.0.0.1" or ipaddr == localIp)
+#    admin = (ipaddr == "127.0.0.1" or ipaddr == localIp)
+#    admin = ("os" in request.args and "win" in request.args["os"].lower())
+    ret['admin'] = ("os" in request.args and "win" in request.args["os"].lower())
     if len(jsonStr) > 0 and (ipaddr == "127.0.0.1" or ipaddr == localIp):
         data = json.loads(jsonStr)
         print(data)
@@ -190,7 +198,8 @@ def checkOutBook():
     jsonStr = str(request.data, 'UTF-8')
     print(jsonStr)
     ret = "FAILURE"
-    admin = (ipaddr == "127.0.0.1" or ipaddr == localIp)
+#    admin = (ipaddr == "127.0.0.1" or ipaddr == localIp)
+    admin = ("os" in request.args and "win" in request.args["os"].lower())
     if len(jsonStr) > 0:
         data = json.loads(jsonStr)
         ret = clib.checkOutBook(bookKey=data['book'], userKey=data['user'], admin=admin)
@@ -205,7 +214,8 @@ def extendBook():
     jsonStr = str(request.data, 'UTF-8')
     print(jsonStr)
     ret = "FAILURE"
-    admin = (ipaddr == "127.0.0.1" or ipaddr == localIp)
+#    admin = (ipaddr == "127.0.0.1" or ipaddr == localIp)
+    admin = ("os" in request.args and "win" in request.args["os"].lower())
     if len(jsonStr) > 0:
         data = json.loads(jsonStr)
         ret = clib.extendBook(bookKey=data['book'], admin=admin)
@@ -267,7 +277,8 @@ def scanBarcode():
     ipaddr = request.remote_addr
     ret = dict()
     ret['scan'] = keyInput.read()
-    ret['admin'] = (ipaddr == "127.0.0.1" or ipaddr == localIp)
+#    ret['admin'] = (ipaddr == "127.0.0.1" or ipaddr == localIp)
+    ret['admin'] = ("os" in request.args and "win" in request.args["os"].lower())
     response = jsonify(ret)
     return response
 
