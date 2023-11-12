@@ -3,6 +3,8 @@ sudo apt update
 sudo apt install -y docker-ce docker-compose-plugin
 sudo ln -s /usr/libexec/docker/cli-plugins/docker-compose /usr/bin/docker-compose
 
+sudo usermod -aG docker $USER
+
 echo "
 # NonInsidersVersion
 if service docker status 2>&1 | grep -q \"is not running\"; then
