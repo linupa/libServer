@@ -7,7 +7,7 @@ password = Config['password']
 connection = Config['connection'].format(password)
 
 class MongoDB:
-    def __init__(self, globalIp, localIp):
+    def __init__(self, globalIp, localIp, proxy):
 
         print(f"Connection Info [{connection}]")
         self.client = MongoClient(connection)
@@ -23,7 +23,7 @@ class MongoDB:
         values["$set"]["globalIp"] = globalIp
         values["$set"]["localIp"] = localIp
         values["$set"]["port"] = 8080
-        values["$set"]["proxy"] = False
+        values["$set"]["proxy"] = proxy
         print("Server Info " + str(values["$set"]))
         serverInfo.update_one(query, values)
 

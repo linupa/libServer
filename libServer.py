@@ -9,13 +9,13 @@ import time
 from clibrary import CLibrary
 import signal
 from mongodb import MongoDB
-#from ocrTest import OCRTest
 from keyInput import KeyInput
 from dbUtil import *
 import requests
 import socket
 import dns.resolver
 #import webbrowser
+#from ocrTest import OCRTest
 
 dns.resolver.default_resolver=dns.resolver.Resolver(configure=False)
 dns.resolver.default_resolver.nameservers=['8.8.8.8']
@@ -25,6 +25,7 @@ global mdb
 global keyInput
 global globalIp
 global localIp
+global proxy
 
 app = Flask(__name__)
 CORS(app, supports_credentials=True, resources={r"/uploadImage": {"origins": "*"}})
@@ -38,6 +39,8 @@ CORS(app, supports_credentials=True, resources={r"/book": {"origins": "*"}})
 CORS(app, supports_credentials=True, resources={r"/history": {"origins": "*"}})
 
 image = None
+
+proxy = False
 
 #@app.after_request
 #def handle_options(response):
@@ -164,8 +167,11 @@ def updateUser():
     print(request.data)
     jsonStr = str(request.data, 'UTF-8')
     data = json.loads(jsonStr)
+    if "os" in data:
+        del data["os"]
     for key in data:
         base64value = data[key]
+        print(f"Key: {key} Data: {data[key]}")
         data[key] = base64.b64decode(base64value).decode('utf-8')
 
     print(f"Arguments [{data}]")
@@ -308,7 +314,7 @@ if __name__ == '__main__':
     print(clib.books[key].keys())
 
     print("Query cloud database")
-    mdb = MongoDB(globalIp, localIp)
+    mdb = MongoDB(globalIp, localIp, proxy)
     print(mdb.mdBooks[key])
     print(mdb.mdBooks[key].keys())
 
@@ -331,5 +337,7 @@ if __name__ == '__main__':
 #    from waitress import serve
 #    serve(app, host="0.0.0.0", port=8080)
 #    serve(app, host="0.0.0.0", port=8080, url_scheme='https')
-#    app.run(host='0.0.0.0', port=8080)
-    app.run(host='0.0.0.0', ssl_context=('cert.pem', 'key.pem'), port=8080)
+    if proxy:
+        app.run(host='0.0.0.0', port=8080)
+    else:
+        app.run(host='0.0.0.0', ssl_context=('cert.pem', 'key.pem'), port=8080)
