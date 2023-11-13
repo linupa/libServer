@@ -27,8 +27,8 @@ class MongoDB:
         print("Server Info " + str(values["$set"]))
         serverInfo.update_one(query, values)
 
+        '''
         bookDb = db.book
-
         print('=' * 20)
         print('Read Books from MongoDB')
         self.mdBooks = dict()
@@ -37,4 +37,4 @@ class MongoDB:
             self.mdBooks[key] = book
 
         print(f"Total {len(self.mdBooks)} books")
-
+        '''

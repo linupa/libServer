@@ -52,6 +52,7 @@ proxy = False
 #
 #    return response
 
+#################### GET #####################
 @app.route('/', methods=['GET'])
 @app.route('/check', methods=['GET'])
 def check():
@@ -158,6 +159,20 @@ def findUsers():
     response = jsonify({'return': ret})
     return response
 
+@app.route('/scanBarcode', methods=['OPTIONS', 'GET'])
+@cross_origin()
+def scanBarcode():
+    ipaddr = request.remote_addr
+    ret = dict()
+    ret['scan'] = keyInput.read()
+#    ret['admin'] = (ipaddr == "127.0.0.1" or ipaddr == localIp)
+    ret['admin'] = ("os" in request.args and "win" in request.args["os"].lower())
+    response = jsonify(ret)
+    return response
+
+
+#################### POST #####################
+
 @app.route('/user', methods=['POST'])
 def updateUser():
     print("=" * 80)
@@ -205,9 +220,9 @@ def checkOutBook():
     print(jsonStr)
     ret = "FAILURE"
 #    admin = (ipaddr == "127.0.0.1" or ipaddr == localIp)
-    admin = ("os" in request.args and "win" in request.args["os"].lower())
     if len(jsonStr) > 0:
         data = json.loads(jsonStr)
+        admin = ("os" in data and "win" in data["os"].lower())
         ret = clib.checkOutBook(bookKey=data['book'], userKey=data['user'], admin=admin)
     response = jsonify({'return': ret})
     return response
@@ -221,9 +236,9 @@ def extendBook():
     print(jsonStr)
     ret = "FAILURE"
 #    admin = (ipaddr == "127.0.0.1" or ipaddr == localIp)
-    admin = ("os" in request.args and "win" in request.args["os"].lower())
     if len(jsonStr) > 0:
         data = json.loads(jsonStr)
+        admin = ("os" in data and "win" in data["os"].lower())
         ret = clib.extendBook(bookKey=data['book'], admin=admin)
     response = jsonify({'return': ret})
     return response
@@ -277,17 +292,6 @@ def uploadImage():
     return response
 '''
 
-@app.route('/scanBarcode', methods=['OPTIONS', 'GET'])
-@cross_origin()
-def scanBarcode():
-    ipaddr = request.remote_addr
-    ret = dict()
-    ret['scan'] = keyInput.read()
-#    ret['admin'] = (ipaddr == "127.0.0.1" or ipaddr == localIp)
-    ret['admin'] = ("os" in request.args and "win" in request.args["os"].lower())
-    response = jsonify(ret)
-    return response
-
 def handler(signum, frame):
     print("Exit libServer")
     clib.close()
@@ -307,29 +311,21 @@ if __name__ == '__main__':
     print("Query local database")
     clib = CLibrary()
 
-    print('=' * 20)
-    print('Read Books from SQL')
-    key = list(clib.books.keys())[1]
-    print(clib.books[key])
-    print(clib.books[key].keys())
+    #print('=' * 20)
+    #print('Read Books from SQL')
+    #key = list(clib.books.keys())[1]
+    #print(clib.books[key])
+    #print(clib.books[key].keys())
 
     print("Query cloud database")
     mdb = MongoDB(globalIp, localIp, proxy)
-    print(mdb.mdBooks[key])
-    print(mdb.mdBooks[key].keys())
+    #print(mdb.mdBooks[key])
+    #print(mdb.mdBooks[key].keys())
 
-    count = 0
-
-    print("Compare books")
-    compare(clib.books, mdb.mdBooks, sqlBookDict)
-
-#    for entry in clib.rentHistory:
-#        if entry['BOOK_CODE'] == 'HK00004322':
-#            print(entry)
+    #print("Compare books")
+    #compare(clib.books, mdb.mdBooks, sqlBookDict)
 
     keyInput = KeyInput()
-#    t2 = Thread(target=runGUI)
-#    t2.start()
 
     signal.signal(signal.SIGINT,handler)
 
