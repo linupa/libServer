@@ -69,23 +69,13 @@ def uploadDatabase(clib, mongoDb, debug = True):
     print("Upload database")
     books = convertToMDB(clib.books, '_id', sqlBookDict)
     marcs = convertToMDB(clib.marcs, '_id', sqlMARCDict)
-    users = convertToMDB(clib.users, '_id', sqlUserDict)
-    rents = convertToMDB(clib.rents, '_id', sqlRentDict)
-    rentlog = convertToMDB(clib.rentHistory, '_id', sqlRentHistoryDict)
-
-    # Remove AVAILBLE books from rent list
-    for key in list(rents.keys()):
-        if rents[key]['state'] in {0, "0"}:
-            del rents[key]
 
     print("="*80)
     print("Book")
     mdbDict = mdb2dict(mongoDb.book)
     print(f"Local {len(books)}, Remote {len(mdbDict)}")
-    if "AB0354" in mdbDict:
-        print(mdbDict["AB0354"])
+
     updates = compare(books, mdbDict, log=False)
-    #updateCloud(updates, srcDB, mongoDb.book)
     lastSeq = 0
     for key in mdbDict:
         mdb = mdbDict[key]

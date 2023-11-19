@@ -20,7 +20,8 @@ def downloadDatabase(clib, db):
     print("Download book database")
 
     print("="*80)
-    print("Book")
+    bookInfo = db.command("collstats", "book")
+    print(f"Book ({bookInfo['count']})")
     books = convertToSQL(db.book, "BARCODE", sqlBookDict)
     newBookList = updateDB(clib.books, books, clib, "book", "BARCODE")
 
@@ -30,23 +31,10 @@ def downloadDatabase(clib, db):
         newBooks[bookId] = books[bookId]
 
     print("="*80)
-    print("MARC")
+    marcInfo = db.command("collstats", "marc")
+    print(f"MARC ({marcInfo['count']})")
     marcs = convertToSQL(db.marc, "SEQ", sqlMARCDict)
     updateDB(clib.marcs, marcs, clib, "marc", "SEQ")
-
-    idx = 0
-    for key in marcs:
-        m = MARC(marcs[key]["MARC_DATA"])
-        for entry in m.entries:
-            if entry[0] == "049":
-                item = entry[4]
-                if item["l"][0:3] != "HK0":
-                    break
-                if "f" in item and item["f"] != "아동":
-                    print(m.entries)
-                    idx += 1
-
-    print(idx)
 
     print("="*80)
     print("Rent")

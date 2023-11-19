@@ -109,6 +109,8 @@ def mdb2dict(srcList: list, key = '_id', callback = None, interval = 1000):
         if callback and count % interval == 0:
             callback(count)
         count += 1
+    if callback:
+        callback(count)
     return dstDict
 
 def mdb2list(srcList: list, key = '_id'):
@@ -164,15 +166,28 @@ def dictToString2(d, valueOnly = False):
         return l
     return ", ".join(l)
 
-def updateSQL(updates, srcEntries, clib, dbName, keyName):
+def updateSQL(updates, srcEntries, clib, dbName, keyName, callback = None, interval = 100):
+    totalCount = len(updates[0]) + len(updates[1]) + len(updates[2])
+    if totalCount == 0:
+        totalCount = 1
+    count = 0
     for entry in updates[2]:
-        clib.db.UpdateQuery(f"delete from {dbName} where {keyName}='{entry}'")
+        count += 1
+        if callback and (count%interval) == 0:
+            callback(100 * count / totalCount)
+        try:
+            clib.db.UpdateQuery(f"delete from {dbName} where {keyName}='{entry}'")
+        except Exception as e:
+            print(e)
 
     for key in updates[0]:
         entry = srcEntries[key]
         label = dictToString(entry, labelOnly = True)
         value = dictToString2(entry, valueOnly = True)
         queryStr = "insert into {} ({}) values ({})".format(dbName, label, ','.join(['?'] * len(value)))
+        count += 1
+        if callback and (count%interval) == 0:
+            callback(100 * count / totalCount)
         try:
             clib.db.UpdateQueryWithValue(queryStr, value)
         except Exception as e:
@@ -186,10 +201,15 @@ def updateSQL(updates, srcEntries, clib, dbName, keyName):
         queryStr = f"update {dbName} set {label} where {keyName}='{key}'"
 #        print(queryStr)
 #        print(value)
+        count += 1
+        if callback and (count%interval) == 0:
+            callback(100 * count / totalCount)
         try:
             clib.db.UpdateQueryWithValue(queryStr, value)
         except Exception as e:
             print(e)
+    if callback:
+        callback(100 * count / totalCount)
 
 def updateCloud(updates, srcEntries, dstEntries):
 
