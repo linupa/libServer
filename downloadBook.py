@@ -1,3 +1,5 @@
+#!/usr/bin/python3
+
 from pymongo import MongoClient
 from config import Config
 from clibrary import CLibrary

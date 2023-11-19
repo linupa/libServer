@@ -1,3 +1,5 @@
+#!/bin/python3
+
 from pymongo import MongoClient
 from config import Config
 from clibrary import CLibrary
@@ -227,7 +229,10 @@ if __name__ == '__main__':
     shutdown = False
     window = tk.Tk()
     window.title("DB download")
-    window.geometry('800x800')
+    window.geometry('800x400')
+
+    downloadLabel = tk.Label(window, text="Download Cloud DB")
+    updateLabel = tk.Label(window, text="Update CLIB DB")
 
     bookLabel = tk.Label(window, text="Book")
     marcLabel = tk.Label(window, text="MARC")
@@ -253,29 +258,31 @@ if __name__ == '__main__':
     rentUpdate = ttk.Progressbar(window, orient="horizontal", mode="determinate", length=600)
     rentLogUpdate = ttk.Progressbar(window, orient="horizontal", mode="determinate", length=600)
 
-    bookLabel.grid(column = 0, row = 0)
-    marcLabel.grid(column = 0, row = 1)
-    userLabel.grid(column = 0, row = 2)
-    rentLabel.grid(column = 0, row = 3)
-    rentLogLabel.grid(column = 0, row = 4)
+    downloadLabel.grid(column = 0, row = 0)
+    updateLabel.grid(column = 0, row = 6)
+    bookLabel.grid(column = 0, row = 1)
+    marcLabel.grid(column = 0, row = 2)
+    userLabel.grid(column = 0, row = 3)
+    rentLabel.grid(column = 0, row = 4)
+    rentLogLabel.grid(column = 0, row = 5)
 
-    bookProgress.grid(column = 1, row = 0)
-    marcProgress.grid(column = 1, row = 1)
-    userProgress.grid(column = 1, row = 2)
-    rentProgress.grid(column = 1, row = 3)
-    rentLogProgress.grid(column = 1, row = 4)
+    bookProgress.grid(column = 1, row = 1)
+    marcProgress.grid(column = 1, row = 2)
+    userProgress.grid(column = 1, row = 3)
+    rentProgress.grid(column = 1, row = 4)
+    rentLogProgress.grid(column = 1, row = 5)
 
-    bookLabel2.grid(column = 0, row = 6)
-    marcLabel2.grid(column = 0, row = 7)
-    userLabel2.grid(column = 0, row = 8)
-    rentLabel2.grid(column = 0, row = 9)
-    rentLogLabel2.grid(column = 0, row = 10)
+    bookLabel2.grid(column = 0, row = 7)
+    marcLabel2.grid(column = 0, row = 8)
+    userLabel2.grid(column = 0, row = 9)
+    rentLabel2.grid(column = 0, row = 10)
+    rentLogLabel2.grid(column = 0, row = 11)
 
-    bookUpdate.grid(column = 1, row = 6)
-    marcUpdate.grid(column = 1, row = 7)
-    userUpdate.grid(column = 1, row = 8)
-    rentUpdate.grid(column = 1, row = 9)
-    rentLogUpdate.grid(column = 1, row = 10)
+    bookUpdate.grid(column = 1, row = 7)
+    marcUpdate.grid(column = 1, row = 8)
+    userUpdate.grid(column = 1, row = 9)
+    rentUpdate.grid(column = 1, row = 10)
+    rentLogUpdate.grid(column = 1, row = 11)
 
     thread = threading.Thread(target = downloadThread, args = (window,))
     thread.start()

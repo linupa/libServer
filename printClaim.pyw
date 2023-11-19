@@ -1,3 +1,5 @@
+#!/bin/python3
+
 import os
 import webbrowser
 import tkinter as tk

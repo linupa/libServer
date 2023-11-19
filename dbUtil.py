@@ -209,9 +209,13 @@ def updateSQL(updates, srcEntries, clib, dbName, keyName, callback = None, inter
         except Exception as e:
             print(e)
     if callback:
-        callback(100 * count / totalCount)
+        callback(100)
 
-def updateCloud(updates, srcEntries, dstEntries):
+def updateCloud(updates, srcEntries, dstEntries, callback):
+    totalCount = len(updates[0]) + len(updates[1]) + len(updates[2])
+    if totalCount == 0:
+        totalCount = 1
+    count = 0
 
 #    return
 
@@ -251,6 +255,8 @@ def updateCloud(updates, srcEntries, dstEntries):
         count +=1
     print("")
 
+    if callback:
+        callback(100)
 
 def encryptUserInfo(users):
     prk = rsa.PrivateKey.load_pkcs1(Config['key'],'PEM')

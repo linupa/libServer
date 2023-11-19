@@ -203,9 +203,9 @@ def setBook():
     ret = "FAILURE"
 #    admin = (ipaddr == "127.0.0.1" or ipaddr == localIp)
 #    admin = ("os" in request.args and "win" in request.args["os"].lower())
-    ret['admin'] = ("os" in request.args and "win" in request.args["os"].lower())
     if len(jsonStr) > 0 and (ipaddr == "127.0.0.1" or ipaddr == localIp):
         data = json.loads(jsonStr)
+        admin = ("os" in data and "win" in data["os"].lower())
         print(data)
         ret = clib.setBookInfo(bookKey=data['book'], state=data['state'])
     response = jsonify({'return': ret})
