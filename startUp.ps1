@@ -26,6 +26,10 @@ Invoke-Expression "Remove-NetFireWallRule -DisplayName $fireWallDisplayName";
 Invoke-Expression "New-NetFireWallRule -DisplayName $fireWallDisplayName -Direction Outbound -LocalPort $portsStr -Action Allow -Protocol TCP";
 Invoke-Expression "New-NetFireWallRule -DisplayName $fireWallDisplayName -Direction Inbound -LocalPort $portsStr -Action Allow -Protocol TCP";
 
+Echo Start Docker
+$password = "linwoo1123"
+wsl bash -c "echo $password | sudo -S service docker start"
+
 Echo Pull GIT repository
 cd c:\clib\libServer
 git pull origin
