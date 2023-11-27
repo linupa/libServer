@@ -52,7 +52,7 @@ if __name__ == '__main__':
   c2 = tk.Radiobutton(window, text=text['8xx'], variable = category, value = 2)
   c3 = tk.Radiobutton(window, text=text['others'], variable = category, value = 3)
 
-  sheet= tksheet.Sheet(window, width=800, height=600)
+  sheet= tksheet.Sheet(window, width=800, height=600, column_width=200)
   fileName = tk.Label(window, text='FileName')
 
   search = tk.Button(window, text=text["search"])

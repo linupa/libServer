@@ -442,7 +442,9 @@ class CLibrary:
                     continue
                 if book['BOOKNAME'].find(keyword) >= 0:
                     ret.append(book)
-                if book['ISBN'] == keyword:
+                elif book['TOTAL_NAME'].find(keyword) >= 0:
+                    ret.append(book)
+                elif book['ISBN'] == keyword:
                     ret.append(book)
                 if len(ret) >= 100:
                     break
