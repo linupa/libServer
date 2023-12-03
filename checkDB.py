@@ -3,6 +3,7 @@ from config import Config
 from clibrary import CLibrary
 from dbUtil import *
 from marc import MARC
+from authorCode import getAuthorCode
 
 import dns.resolver
 dns.resolver.default_resolver=dns.resolver.Resolver(configure=False)
@@ -81,6 +82,7 @@ def checkDB(mongoDb):
     matchCount = 0
     mismatchCount = 0
     failCount = 0
+    authorMismatch = 0
     for key in marcs:
         orgMarc = marcs[key]["MARC_DATA"]
         try:
@@ -95,11 +97,18 @@ def checkDB(mongoDb):
             book = marc.getBookInfo()
             barcode = book["BARCODE"]
             booksFromMarc[barcode] = book
+            if "AUTHOR_CODE" in book and "AUTHOR" in book:
+                authorCode = book["AUTHOR_CODE"]
+                generatedAuthorCode = getAuthorCode(book["AUTHOR"].strip(), book["BOOKNAME"].strip())
+            if authorCode != generatedAuthorCode:
+#                print(f"{book['BARCODE']} Mismatch {authorCode} vs {generatedAuthorCode}")
+                authorMismatch += 1
         except Exception as e:
             print(f"Failed to decode MARC {e}")
             print(orgMarc)
+            print(book)
             failCount += 1
-    print(f"Same {matchCount} / Change {mismatchCount} / Fail {failCount} / Total {len(marcs)}")
+    print(f"Same {matchCount} / Change {mismatchCount} / Fail {failCount} / Total {len(marcs)} // AuthorCode {authorMismatch}")
     booksFromMarc = convertToMDB(booksFromMarc, "_id", sqlBookDict)
 
     print("Compare Book and MARC")
@@ -107,7 +116,7 @@ def checkDB(mongoDb):
         marcBook = booksFromMarc[key]
         mdbBook = books[key]
         for entry in marcBook:
-            if entry in mdbBook and marcBook[entry] != mdbBook[entry]:
+            if entry in mdbBook and marcBook[entry].strip() != mdbBook[entry].strip():
                 print(f"Book {key} mismatch with MARC")
                 print(mdbBook)
                 print(marcBook)

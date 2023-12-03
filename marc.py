@@ -138,12 +138,17 @@ class MARC:
             print(self.rawDirectory)
 
         marc = self.header + directory + end + encodedGroups
+        midLength = len(self.header + directory + end)
+        length = midLength + len(bytes(encodedGroups, ENCODING)) + 1
 
         if self.debug:
+            print("Compare:")
             print(marc)
             print(self.marc)
+            print(f"Length: {length}")
+            print(f"MidLength: {midLength}")
 
-        marcStr =  marc
+        marcStr =  f"{length:05d}" + marc[5:12] + f"{midLength:05d}" + marc[17:]
         marcStr = marcStr.replace(begin, BEGIN).replace(end, END)
         marcStr += "\x1d"
 
@@ -178,6 +183,7 @@ class MARC:
         info["BARCODE"] = self.getValue("049", "l")
         info["EX_CATE"] = self.getValue("049", "f")
         info["ISBN"] = self.getValue("020", "a")
+        info["BOOKNAME"] = self.getValue("245", "a")
         info["AUTHOR"] = self.getValue("245", "d")
 
         info["CATEGORY"] = self.getValue("056", "a")
