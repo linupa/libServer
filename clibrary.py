@@ -75,6 +75,11 @@ class CLibrary:
         numBook = 0
         for book in data['BOOK']:
             barcode = book['BARCODE']
+            if barcode in self.books:
+                print(f"ERROR: {barcode} duplicated")
+                print(self.books[barcode])
+                print(book)
+
             self.books[barcode] = book
             if book['DELETE_YN'] != 'Y':
                 numBook += 1
@@ -113,6 +118,18 @@ class CLibrary:
         checkUnique(self.rentHistory, key="SEQ")
         print(f"Max rent history seq {self.getMaxRentLog()}")
 
+        seqs = dict()
+        for book in data["BOOK"]:
+            seq = book['SEQ']
+            if seq in seqs:
+                print(f"ERROR {seq} is already occupied by {seqs[seq]}, {book}")
+            else:
+                seqs[seq] = book
+            if seq not in self.marcs:
+                print(f"ERROR {book} is not found in MARC")
+        print(len(self.books))
+        print(len(self.marcs))
+        print(len(seqs))
         self.updateDatabase()
 
 #        print(self.books)

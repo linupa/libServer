@@ -1,4 +1,4 @@
-Echo Set WSL port forwarding
+Echo "Set WSL port forwarding"
 $ports = @(80, 443, 10000, 3000, 5000);
 
 $wslAddress=bash.exe -c "ifconfig eth0 | grep -oP '(?<=inet\s)\d+(\.\d+){3}'"
@@ -26,18 +26,19 @@ Invoke-Expression "Remove-NetFireWallRule -DisplayName $fireWallDisplayName";
 Invoke-Expression "New-NetFireWallRule -DisplayName $fireWallDisplayName -Direction Outbound -LocalPort $portsStr -Action Allow -Protocol TCP";
 Invoke-Expression "New-NetFireWallRule -DisplayName $fireWallDisplayName -Direction Inbound -LocalPort $portsStr -Action Allow -Protocol TCP";
 
-Echo Start Docker
-$password = "linwoo1123"
+Echo "Start Docker"
+$password = "hkmcclibrary"
 wsl bash -c "echo $password | sudo -S service docker start"
 
-Echo Pull GIT repository
+Echo "Pull GIT repository"
 cd c:\clib\libServer
 git pull origin
 copy keyInput.txt keyInput.py
 
-Echo Download Datebase
-python3 downloadDB.py
+Echo "Download Datebase"
+Echo "Assume that checkout/return happens only in this system"
+python3 downloadBook.py
 
-Echo Kill SQL server
+Echo "Kill SQL server"
 python3 killProcess.py
 REM python3 libServer.py

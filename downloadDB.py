@@ -34,57 +34,7 @@ def updateDB(currDb, srcDb, dstDb, dbName, dbKey, callback = None, log = False):
     updates = compare(srcDb, currDb, log=log)
     updateSQL(updates, srcDb, dstDb, dbName, dbKey, callback)
 
-def setBookProgress(value):
-    global bookCount
-    global bookProgress
-    bookProgress["value"] = 100 * value / bookCount
-
-def setMARCProgress(value):
-    global marcCount
-    global marcProgress
-    marcProgress["value"] = 100 * value / marcCount
-
-def setUserProgress(value):
-    global userCount
-    global userProgress
-    userProgress["value"] = 100 * value / userCount
-
-def setRentProgress(value):
-    global rentCount
-    global rentProgress
-    rentProgress["value"] = 100 * value / rentCount
-
-def setRentLogProgress(value):
-    global rentLogCount
-    global rentLogProgress
-    rentLogProgress["value"] = 100 * value / rentLogCount
-
-def setBookUpdate(value):
-    global bookCount
-    global bookUpdate
-    bookUpdate["value"] = value
-
-def setMARCUpdate(value):
-    global marcCount
-    global marcUpdate
-    marcUpdate["value"] = value
-
-def setUserUpdate(value):
-    global userCount
-    global userUpdate
-    userUpdate["value"] = value
-
-def setRentUpdate(value):
-    global rentCount
-    global rentUpdate
-    rentUpdate["value"] = value
-
-def setRentLogUpdate(value):
-    global rentLogCount
-    global rentLogUpdate
-    rentLogUpdate["value"] = value
-
-def downloadDatabase(clib, db):
+def downloadDatabase(clib, db, widgets):
     global bookCount
     global bookProgress
     global marcCount
@@ -106,15 +56,17 @@ def downloadDatabase(clib, db):
 
     print("="*80)
     bookInfo = db.command("collstats", "book")
+    widgets["book"].setCount(bookInfo['count'])
     bookCount = bookInfo['count']
     print(f"Book ({bookInfo['count']})")
-    books = convertToSQL(db.book, "BARCODE", sqlBookDict, setBookProgress, 10)
+    books = convertToSQL(db.book, "BARCODE", sqlBookDict, widgets["book"].setDownload, 10)
 
     print("="*80)
     marcInfo = db.command("collstats", "marc")
+    widgets["marc"].setCount(marcInfo['count'])
     marcCount = marcInfo['count']
     print(f"MARC ({marcInfo['count']})")
-    marcs = convertToSQL(db.marc, "SEQ", sqlMARCDict, setMARCProgress, 10)
+    marcs = convertToSQL(db.marc, "SEQ", sqlMARCDict, widgets["marc"].setDownload, 10)
     matchCount = 0
     mismatchCount = 0
     failCount = 0
@@ -156,9 +108,9 @@ def downloadDatabase(clib, db):
 
     print("="*80)
     userInfo = db.command("collstats", "user")
-    userCount = userInfo['count']
+    widgets["user"].setCount(userInfo['count'])
     print(f"User ({userInfo['count']})")
-    users = convertToSQL(db.user, "USER_CODE", sqlUserDict, setUserProgress, 10)
+    users = convertToSQL(db.user, "USER_CODE", sqlUserDict, widgets["user"].setDownload, 10)
     for key in users:
         user = users[key]
         if 'DELETE_YN' not in user:
@@ -166,18 +118,21 @@ def downloadDatabase(clib, db):
 
     print("="*80)
     rentInfo = db.command("collstats", "rent")
+    widgets["rent"].setCount(rentInfo['count'])
+    print(f"User ({userInfo['count']})")
     rentCount = rentInfo['count']
     print(f"Rent ({rentInfo['count']})")
-    rents = convertToSQL(db.rent, "BARCODE", sqlRentDict, setRentProgress, 10)
+    rents = convertToSQL(db.rent, "BARCODE", sqlRentDict, widgets["rent"].setDownload, 10)
     for key in books:
         if key not in rents:
             rents[key] = {'SEQ': books[key]['SEQ'], 'BARCODE': key, 'STATS': 0, 'USERS': '', 'LENT_DATE': '', 'RETURN_DATE': '', 'RESERVE_USER': '', 'RESERVE_DATE': '', 'EXTEND_COUNT': 0, 'DELETE_YN': books[key]['DELETE_YN'], 'ATTACH': 'N', 'ATTACH_USER': ''}
 
     print("="*80)
     rentLogInfo = db.command("collstats", "rentLog")
+    widgets["rentHistory"].setCount(rentLogInfo['count'])
     rentLogCount = rentLogInfo['count']
     print(f"RentHistory ({rentLogInfo['count']})")
-    rentlog = convertToSQL(db.rentLog, "SEQ", sqlRentHistoryDict, setRentLogProgress, 10)
+    rentlog = convertToSQL(db.rentLog, "SEQ", sqlRentHistoryDict, widgets["rentHistory"].setDownload, 10)
     for entry in clib.rentHistory:
         regDate = entry['REG_DATE']
         if len(regDate) == 18:
@@ -187,15 +142,15 @@ def downloadDatabase(clib, db):
 
     print("="*80)
     print("Update DBs")
-    updateDB(clib.books, books, clib, "book", "BARCODE", setBookUpdate)
-    updateDB(clib.marcs, marcs, clib, "marc", "SEQ", setMARCUpdate)
-    updateDB(clib.users, users, clib, "users", "USER_CODE", setUserUpdate)
-    updateDB(clib.rents, rents, clib, "book_lent", "BARCODE", setRentUpdate)
-    updateDB(list2dict(clib.rentHistory, "SEQ"), rentlog, clib, "rental_history", "SEQ", setRentLogUpdate)
+    updateDB(clib.books, books, clib, "book", "BARCODE", widgets["book"].setUpdate)
+    updateDB(clib.marcs, marcs, clib, "marc", "SEQ", widgets["marc"].setUpdate)
+    updateDB(clib.users, users, clib, "users", "USER_CODE", widgets["user"].setUpdate)
+    updateDB(clib.rents, rents, clib, "book_lent", "BARCODE", widgets["rent"].setUpdate)
+    updateDB(list2dict(clib.rentHistory, "SEQ"), rentlog, clib, "rental_history", "SEQ", widgets["rent"].setUpdate)
 
     checkUnique(rentlog, "SEQ")
 
-def downloadThread(window):
+def downloadThread(window, widgets):
     global shutdown
     # Read SQL
     clib = CLibrary()
@@ -207,7 +162,7 @@ def downloadThread(window):
     db = client.library
     print("Check")
 
-    downloadDatabase(clib, db)
+    downloadDatabase(clib, db, widgets)
     print("Done")
     time.sleep(3)
 
@@ -222,6 +177,31 @@ def timer():
     else:
         window.after(1000, timer)
 
+class Progress:
+    def __init__(self, window, name):
+        self.window = window
+        self.bookLabel = tk.Label(window, text=name)
+        self.bookProgress = ttk.Progressbar(window, orient="horizontal", mode="determinate", length=600)
+        self.bookLabel2 = tk.Label(window, text=name)
+        self.bookUpdate = ttk.Progressbar(window, orient="horizontal", mode="determinate", length=600)
+        self.count = 1
+
+    def setCount(self, count):
+        self.count = count
+
+    def addDownload(self, index):
+        self.bookLabel.grid(column = 0, row = index)
+        self.bookProgress.grid(column = 1, row = index)
+
+    def addUpdate(self, index):
+        self.bookLabel2.grid(column = 0, row = index)
+        self.bookUpdate.grid(column = 1, row = index)
+
+    def setDownload(self, value):
+        self.bookProgress["value"] = 100 * value / self.count
+
+    def setUpdate(self, value):
+        self.bookUpdate["value"] = value
 
 if __name__ == '__main__':
     global shutdown
@@ -234,57 +214,26 @@ if __name__ == '__main__':
     downloadLabel = tk.Label(window, text="Download Cloud DB")
     updateLabel = tk.Label(window, text="Update CLIB DB")
 
-    bookLabel = tk.Label(window, text="Book")
-    marcLabel = tk.Label(window, text="MARC")
-    userLabel = tk.Label(window, text="User")
-    rentLabel = tk.Label(window, text="Rent")
-    rentLogLabel = tk.Label(window, text="RentHistory")
+    items = ["book", "marc", "user", "rent", "rentHistory"]
+    widgets = dict()
+    widgets["book"] = Progress(window, "Book")
+    widgets["marc"] = Progress(window, "MARC")
+    widgets["user"] = Progress(window, "User")
+    widgets["rent"] = Progress(window, "Rent")
+    widgets["rentHistory"] = Progress(window, "RentHistory")
 
-    bookProgress = ttk.Progressbar(window, orient="horizontal", mode="determinate", length=600)
-    marcProgress = ttk.Progressbar(window, orient="horizontal", mode="determinate", length=600)
-    userProgress = ttk.Progressbar(window, orient="horizontal", mode="determinate", length=600)
-    rentProgress = ttk.Progressbar(window, orient="horizontal", mode="determinate", length=600)
-    rentLogProgress = ttk.Progressbar(window, orient="horizontal", mode="determinate", length=600)
+    index = 0
+    for i in range(len(items)):
+        widgets[items[i]].addDownload(index)
+        index += 1
 
-    bookLabel2 = tk.Label(window, text="Book")
-    marcLabel2 = tk.Label(window, text="MARC")
-    userLabel2 = tk.Label(window, text="User")
-    rentLabel2 = tk.Label(window, text="Rent")
-    rentLogLabel2 = tk.Label(window, text="RentHistory")
 
-    bookUpdate = ttk.Progressbar(window, orient="horizontal", mode="determinate", length=600)
-    marcUpdate = ttk.Progressbar(window, orient="horizontal", mode="determinate", length=600)
-    userUpdate = ttk.Progressbar(window, orient="horizontal", mode="determinate", length=600)
-    rentUpdate = ttk.Progressbar(window, orient="horizontal", mode="determinate", length=600)
-    rentLogUpdate = ttk.Progressbar(window, orient="horizontal", mode="determinate", length=600)
+    index += 1
+    for i in range(len(items)):
+        widgets[items[i]].addUpdate(index)
+        index += 1
 
-    downloadLabel.grid(column = 0, row = 0)
-    updateLabel.grid(column = 0, row = 6)
-    bookLabel.grid(column = 0, row = 1)
-    marcLabel.grid(column = 0, row = 2)
-    userLabel.grid(column = 0, row = 3)
-    rentLabel.grid(column = 0, row = 4)
-    rentLogLabel.grid(column = 0, row = 5)
-
-    bookProgress.grid(column = 1, row = 1)
-    marcProgress.grid(column = 1, row = 2)
-    userProgress.grid(column = 1, row = 3)
-    rentProgress.grid(column = 1, row = 4)
-    rentLogProgress.grid(column = 1, row = 5)
-
-    bookLabel2.grid(column = 0, row = 7)
-    marcLabel2.grid(column = 0, row = 8)
-    userLabel2.grid(column = 0, row = 9)
-    rentLabel2.grid(column = 0, row = 10)
-    rentLogLabel2.grid(column = 0, row = 11)
-
-    bookUpdate.grid(column = 1, row = 7)
-    marcUpdate.grid(column = 1, row = 8)
-    userUpdate.grid(column = 1, row = 9)
-    rentUpdate.grid(column = 1, row = 10)
-    rentLogUpdate.grid(column = 1, row = 11)
-
-    thread = threading.Thread(target = downloadThread, args = (window,))
+    thread = threading.Thread(target = downloadThread, args = (window, widgets))
     thread.start()
 
     window.after(1000, timer)

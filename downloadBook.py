@@ -15,6 +15,9 @@ connection = Config['connection'].format(password)
 
 def updateDB(currDb, srcDb, dstDb, dbName, dbKey, log = False):
     updates = compare(srcDb, currDb, log=log)
+    for bookId in updates[1]:
+        if srcDb[bookId]['seq'] != curDb[bookId]['seq']:
+            print(f"Error SEQ mismatch for {bookId}")
     updateSQL(updates, srcDb, dstDb, dbName, dbKey)
     return updates[0]
 
