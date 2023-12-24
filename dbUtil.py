@@ -2,6 +2,7 @@ import datetime
 import base64
 import rsa
 from config import Config
+import requests
 
 sqlBookDict = {
     'SEQ': 'seqnum',
@@ -521,79 +522,15 @@ def checkRentHistory(rentlog: list, keyMap: dict):
     print(f"Checkout: {numCheckout}, Return: {numReturn}, NoReturn: {len(noReturn)}")
     return noReturn
 
-'''
-def checkRentHistory(rentlog):
-    print("Check rent history validity")
-    rentLogList = list()
-    for key in rentlog:
-        log = rentlog[key]
-        rentLogList.append(log.copy())
+def reportServerLog(db, action, misc = dict()):
+    report = dict()
+    report.update(misc)
+    report["action"] = action
+    api_url = "https://api.ipify.org/?format=json"
+    response = requests.get(api_url)
+    report["ip"] = response.json()['ip']
+    report["time"] = str(datetime.datetime.now())
 
-    rentLogList.sort(key=logKey)
+    db.serverLog.insert_one(report)
 
-    bookLog = dict();
-#    for key in rentlog:
-#        log = rentlog[key]
-    numCheckout = 0
-    numReturn = 0
-    noReturn = set()
-    for i in range(len(rentLogList)):
-        log = rentLogList[i]
-        seqId = log['_id']
-        bookId = log['book_id']
-        state = log['book_state']
-        timestamp = log['timestamp']
-        user = log['user_id']
-        # Skip reservation
-
-#        if bookId == "HK00004645":
-        if bookId == "HK10004763":
-            print(f"{i}: {log}")
-#        if bookId == 'HK00003441':
-#            print(log)
-#            print(rentlog[seqId])
-
-        if state in {2, '2'}:
-            continue
-        if state in {1, '1'}:
-            returned = False
-            otherRent = False
-            numCheckout += 1
-            for j in range(i + 1, len(rentLogList)):
-                log2 = rentLogList[j]
-                if bookId != log2['book_id']:
-                    continue
-                if log2['book_state'] in {0, '0'} and user == log2['user_id']:
-                    returned = True
-                    break
-                if not otherRent and log2['book_state'] in {1, '1'} and user != log2['user_id']:
-                    otherRent = True
-                    otherRentDate = log2['timestamp']
-            if returned:
-                rentlog[seqId]['return_date'] = log2['timestamp']
-            elif otherRent:
-                rentlog[seqId]['return_date'] = otherRentDate
-            else:
-                noReturn.add(bookId)
-        if state in {0, '0'}:
-            numReturn += 1
-
-        if bookId not in bookLog:
-            if state in {0, '0'}:
-                print(f"Open state it not a checkout for {bookId} ({state})")
-                continue
-            if state not in {1, '1'}:
-                print(f"Open state it not a checkout for {bookId} ({state})")
-            bookLog[bookId] = ( state, timestamp, user )
-        else:
-            if bookLog[bookId][2] != user:
-                print(f"User {bookLog[bookId][2]} checkout {bookId}, {user} did again {state}")
-                bookLog[bookId] = ( state, timestamp, user )
-
-            if state in {0, '0'}:
-                bookLog.pop(bookId)
-
-
-    print(f"Checkout: {numCheckout}, Return: {numReturn}, NoReturn: {len(noReturn)}")
-'''
 

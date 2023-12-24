@@ -37,7 +37,7 @@ copy keyInput.txt keyInput.py
 
 Echo "Download Datebase"
 Echo "Assume that checkout/return happens only in this system"
-python3 downloadBook.py
+python3 downloadDb.py
 
 Echo "Kill SQL server"
 python3 killProcess.py

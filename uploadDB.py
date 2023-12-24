@@ -4,11 +4,13 @@ from config import Config
 from clibrary import CLibrary
 from dbUtil import *
 from marc import MARC
+from uiUtil import Progress
 
 import tkinter as tk
 import threading
 from tkinter import ttk
 import time
+import argparse
 
 import dns.resolver
 dns.resolver.default_resolver=dns.resolver.Resolver(configure=False)
@@ -17,91 +19,30 @@ dns.resolver.default_resolver.nameservers=['8.8.8.8']
 password = Config['password']
 connection = Config['connection'].format(password)
 
-global bookCount
-global bookProgress
-global marcCount
-global marcProgress
-global userCount
-global userProgress
-global rentCount
-global rentProgress
-global rentLogCount
-global rentLogProgress
 global shutdown
 
-def updateMongoDB(mdb, srcDB, callback1 = None, callback2 = None, log = False, debug = False):
-    mdbDict = mdb2dict(mdb, callback=callback1)
+def updateMongoDB(mdb, srcDB, widget, log = False, debug = False):
+    mdbDict = mdb2dict(mdb, callback=widget.setDownload)
     updates = compare(srcDB, mdbDict, log=log)
+    widget.setState(f"Add: {len(updates[0])} Changed: {len(updates[1])} Deleted: {len(updates[2])}")
     if not debug:
-        updateCloud(updates, srcDB, mdb, callback=callback2)
+        updateCloud(updates, srcDB, mdb, callback=widget.setUpdate)
 
-def setBookProgress(value):
-    global bookCount
-    global bookProgress
-    bookProgress["value"] = 100 * value / bookCount
+    return updates
 
-def setMARCProgress(value):
-    global marcCount
-    global marcProgress
-    marcProgress["value"] = 100 * value / marcCount
-
-def setUserProgress(value):
-    global userCount
-    global userProgress
-    userProgress["value"] = 100 * value / userCount
-
-def setRentProgress(value):
-    global rentCount
-    global rentProgress
-    rentProgress["value"] = 100 * value / rentCount
-
-def setRentLogProgress(value):
-    global rentLogCount
-    global rentLogProgress
-    rentLogProgress["value"] = 100 * value / rentLogCount
-
-def setBookUpdate(value):
-    global bookCount
-    global bookUpdate
-    bookUpdate["value"] = value
-
-def setMARCUpdate(value):
-    global marcCount
-    global marcUpdate
-    marcUpdate["value"] = value
-
-def setUserUpdate(value):
-    global userCount
-    global userUpdate
-    userUpdate["value"] = value
-
-def setRentUpdate(value):
-    global rentCount
-    global rentUpdate
-    rentUpdate["value"] = value
-
-def setRentLogUpdate(value):
-    global rentLogCount
-    global rentLogUpdate
-    rentLogUpdate["value"] = value
-
-def uploadDatabase(clib, db, debug = False):
-    global bookCount
-    global bookProgress
-    global marcCount
-    global marcProgress
-    global userCount
-    global userProgress
-    global rentCount
-    global rentProgress
-    global rentLogCount
-    global rentLogProgress
+def uploadDatabase(clib, db, widgets, forced, debug = False):
     print("Upload database")
     books = convertToMDB(clib.books, '_id', sqlBookDict)
     marcs = convertToMDB(clib.marcs, '_id', sqlMARCDict)
     users = convertToMDB(clib.users, '_id', sqlUserDict)
     rents = convertToMDB(clib.rents, '_id', sqlRentDict)
     rentlog = convertToMDB(clib.rentHistory, '_id', sqlRentHistoryDict)
+    result = dict()
+    result["book"] = {"count": len(books)}
+    result["marc"] = {"count": len(marcs)}
+    result["user"] = {"count": len(users)}
+    result["rent"] = {"count": len(rents)}
+    result["rentHistory"] = {"count": len(rentlog)}
 
     # Remove AVAILBLE books from rent list
     for key in list(rents.keys()):
@@ -110,9 +51,9 @@ def uploadDatabase(clib, db, debug = False):
 
     print("="*80)
     bookInfo = db.command("collstats", "book")
-    bookCount = bookInfo['count']
     print(f"Book ({bookInfo['count']})")
-    updateMongoDB(db.book, books, debug = debug, callback1=setBookProgress, callback2=setBookUpdate)
+    updates = updateMongoDB(db.book, books, widgets["book"], debug = debug)
+    result["book"].update({"add": len(updates[0]), "change": len(updates[1]), "delete": len(updates[2])})
 
     print("="*80)
     marcInfo = db.command("collstats", "marc")
@@ -138,7 +79,8 @@ def uploadDatabase(clib, db, debug = False):
             print(orgMarc)
             failCount += 1
     print(f"Same {matchCount} / Change {mismatchCount} / Fail {failCount} / Total {len(marcs)}")
-    updateMongoDB(db.marc, marcs, debug = debug, callback1=setMARCProgress, callback2=setMARCUpdate)
+    updates = updateMongoDB(db.marc, marcs, widgets["marc"], debug = debug)
+    result["marc"].update({"add": len(updates[0]), "change": len(updates[1]), "delete": len(updates[2])})
 
     print("="*80)
     userInfo = db.command("collstats", "user")
@@ -146,7 +88,8 @@ def uploadDatabase(clib, db, debug = False):
     print(f"User ({userInfo['count']})")
     encryptUserInfo(users)
 
-    updateMongoDB(db.user, users, debug = debug, callback1=setUserProgress, callback2=setUserUpdate)
+    updates = updateMongoDB(db.user, users, widgets["user"], debug = debug)
+    result["user"].update({"add": len(updates[0]), "change": len(updates[1]), "delete": len(updates[2])})
 
     print("="*80)
     rentLogInfo = db.command("collstats", "rentLog")
@@ -155,32 +98,59 @@ def uploadDatabase(clib, db, debug = False):
     rentlog = dict2list(rentlog)
     keyMap = {"idx": "_id", "book": "book_id", "state": "book_state", "user": "user_id", "date": "timestamp", "retDate": "return_date"}
     checkRentHistory(rentlog, keyMap)
+    print(rentlog[0])
     rentlog = list2dict(rentlog)
-    updateMongoDB(db.rentLog, rentlog, log=True, debug = debug, callback1=setRentLogProgress, callback2=setRentLogUpdate)
+#    updates = updateMongoDB(db.rentLog, rentlog, widgets["rentHistory"], log=True, debug = debug)
+#              updateMongoDB(mdb, srcDB, widget, log = False, debug = False):
+    mdb = db.rentLog
+    srcDB = rentlog
+    widget = widgets["rentHistory"]
+    mdbDict = mdb2dict(mdb, callback=widget.setDownload)
+    updates = compare(srcDB, mdbDict, log=True)
+    result["rentHistory"].update({"add": len(updates[0]), "change": len(updates[1]), "delete": len(updates[2])})
+    mismatch = False
+    if len(updates[2]) > 0:
+        mismatch = True
+    for key in updates[1]:
+        src = rentlog[key]
+        dst = currDb[key]
+        if (src["_id"] != dst["_id"] or src["book_id"] != dst["book_id"] or
+            src["user_id"] != dst["user_id"]):
+            print("Mismatch")
+            print(src)
+            print(dst)
+            mismatch = True
+            break
+    widget.setState(f"Add: {len(updates[0])} Changed: {len(updates[1])} Deleted: {len(updates[2])}")
+    if (forced or not mismatch) and not debug:
+        updateCloud(updates, srcDB, mdb, callback=widget.setUpdate)
 
     print("="*80)
     rentInfo = db.command("collstats", "rent")
     rentCount = rentInfo['count']
     print(f"Rent ({rentInfo['count']})")
-    updateMongoDB(db.rent, rents, debug = debug, callback1=setRentProgress, callback2=setRentUpdate)
+    updates = updateMongoDB(db.rent, rents, widgets["rent"], debug = debug)
+    result["rent"].update({"add": len(updates[0]), "change": len(updates[1]), "delete": len(updates[2])})
 
-def uploadThread(window):
+    return result
+
+def uploadThread(window, widgets, forced, debug):
     global shutdown
     # Read SQL
     clib = CLibrary()
     print("Got clib")
-
-    debug = False
-    if len(sys.argv) >= 2 and sys.argv[1] == "debug":
-        debug = True
 
     # Open MongoDB
     print(connection)
     client = MongoClient(connection)
     db = client.library
 
-    uploadDatabase(clib, db, debug = debug)
+    result = uploadDatabase(clib, db, widgets, forced, debug = debug)
     print("Done")
+
+    print("Report Server Log")
+    reportServerLog(db, "Upload DB", result)
+
     time.sleep(3)
 
     print("Close")
@@ -198,65 +168,42 @@ if __name__ == '__main__':
 
     global shutdown
 
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-f", "--force", action="store_true")
+    parser.add_argument("-d", "--debug", action="store_true")
+    args = parser.parse_args()
+
+    forced = args.force
+    debug = args.debug
+    print(f"forced: {forced} debug: {debug}")
+
     shutdown = False
     window = tk.Tk()
-    window.title("DB download")
-    window.geometry('800x300')
+    window.title("DB upload")
+    window.geometry('800x400')
 
     downloadLabel = tk.Label(window, text="Download Cloud DB")
     uploadLabel = tk.Label(window, text="Upload Cloud DB")
 
-    bookLabel = tk.Label(window, text="Book")
-    marcLabel = tk.Label(window, text="MARC")
-    userLabel = tk.Label(window, text="User")
-    rentLabel = tk.Label(window, text="Rent")
-    rentLogLabel = tk.Label(window, text="RentHistory")
+    items = ["book", "marc", "user", "rentHistory", "rent"]
+    widgets = dict()
+    widgets["book"] = Progress(window, "Book")
+    widgets["marc"] = Progress(window, "MARC")
+    widgets["user"] = Progress(window, "User")
+    widgets["rentHistory"] = Progress(window, "RentHistory")
+    widgets["rent"] = Progress(window, "Rent")
 
-    bookProgress = ttk.Progressbar(window, orient="horizontal", mode="determinate", length=600)
-    marcProgress = ttk.Progressbar(window, orient="horizontal", mode="determinate", length=600)
-    userProgress = ttk.Progressbar(window, orient="horizontal", mode="determinate", length=600)
-    rentProgress = ttk.Progressbar(window, orient="horizontal", mode="determinate", length=600)
-    rentLogProgress = ttk.Progressbar(window, orient="horizontal", mode="determinate", length=600)
+    index = 0
+    for i in range(len(items)):
+        widgets[items[i]].addDownload(index)
+        index += 1
 
-    bookLabel2 = tk.Label(window, text="Book")
-    marcLabel2 = tk.Label(window, text="MARC")
-    userLabel2 = tk.Label(window, text="User")
-    rentLabel2 = tk.Label(window, text="Rent")
-    rentLogLabel2 = tk.Label(window, text="RentHistory")
+    index += 1
+    for i in range(len(items)):
+        widgets[items[i]].addUpdate(index)
+        index += 2
 
-    bookUpdate = ttk.Progressbar(window, orient="horizontal", mode="determinate", length=600)
-    marcUpdate = ttk.Progressbar(window, orient="horizontal", mode="determinate", length=600)
-    userUpdate = ttk.Progressbar(window, orient="horizontal", mode="determinate", length=600)
-    rentUpdate = ttk.Progressbar(window, orient="horizontal", mode="determinate", length=600)
-    rentLogUpdate = ttk.Progressbar(window, orient="horizontal", mode="determinate", length=600)
-
-    downloadLabel.grid(column = 0, row = 0)
-    uploadLabel.grid(column = 0, row = 6)
-    bookLabel.grid(column = 0, row = 1)
-    marcLabel.grid(column = 0, row = 2)
-    userLabel.grid(column = 0, row = 3)
-    rentLabel.grid(column = 0, row = 4)
-    rentLogLabel.grid(column = 0, row = 5)
-
-    bookProgress.grid(column = 1, row = 1)
-    marcProgress.grid(column = 1, row = 2)
-    userProgress.grid(column = 1, row = 3)
-    rentProgress.grid(column = 1, row = 4)
-    rentLogProgress.grid(column = 1, row = 5)
-
-    bookLabel2.grid(column = 0, row = 7)
-    marcLabel2.grid(column = 0, row = 8)
-    userLabel2.grid(column = 0, row = 9)
-    rentLabel2.grid(column = 0, row = 10)
-    rentLogLabel2.grid(column = 0, row = 11)
-
-    bookUpdate.grid(column = 1, row = 7)
-    marcUpdate.grid(column = 1, row = 8)
-    userUpdate.grid(column = 1, row = 9)
-    rentUpdate.grid(column = 1, row = 10)
-    rentLogUpdate.grid(column = 1, row = 11)
-
-    thread = threading.Thread(target = uploadThread, args = (window,))
+    thread = threading.Thread(target = uploadThread, args = (window, widgets, forced, debug))
     thread.start()
 
     window.after(1000, timer)

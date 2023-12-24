@@ -13,10 +13,19 @@ from ClaimBuilder import ClaimBuilder
 from dbUtil import *
 from Text import text
 
+global sheet
+
 def callback(count):
     print(count)
 
+def resize(event):
+    global sheet
+    print("Resize")
+    print(event)
+#    sheet.height_and_width(event.width,event.height - 100)
+
 if __name__ == '__main__':
+  global sheet
   path = __file__
 
   if "/" in path:
@@ -33,6 +42,8 @@ if __name__ == '__main__':
   window.title(text["claimPrinter"])
 
   window.geometry('800x800')
+
+  window.bind("<Configure>", resize)
 
   fromDateLabel = tk.Label(window, text=text['fromDate'])
   fromDate = tk.Text(window, width=80, height=1)
@@ -161,8 +172,9 @@ if __name__ == '__main__':
 
   fileName.grid(row=5, column=0, columnspan=5)
 
-  sheet.grid(row=6, column=0, columnspan=5)
+  sheet.grid(row=6, column=0, columnspan=5, sticky="news")
   sheet.headers([text["barcode"], text["bookName"], text["claim"], text["regDate"]])
+#  sheet.set_option(auto_resize_columns)
 
 
   window.mainloop()

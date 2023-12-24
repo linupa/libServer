@@ -257,40 +257,6 @@ def returnBook():
     response = jsonify({'return': ret})
     return response
 
-'''
-@app.route('/uploadImage', methods=['POST', 'OPTIONS', 'GET'])
-@cross_origin()
-def uploadImage():
-    global image
-    print("=" * 80)
-    print("image uploaded")
-#    response = jsonify({'return': "OK"})
-#    response.headers.add('Access-Control-Allow-Origin', '*')
-#    print(len(request.data))
-    if len(request.data) > 0:
-        data = json.loads(str(request.data, 'UTF-8'))
-        image = base64.b64decode((data['image'][22:]))
-        print(len(image))
-        print(type(image))
-        print('Load image ' + str(type(image)))
-
-        imgFile = open('image.jpg', 'wb')
-        imgFile.write(image)
-        imgFile.close()
-        ocrTest = OCRTest()
-        candidates = ocrTest.readText('image.jpg')
-        print(candidates)
-        ret = dict()
-        for candidate in candidates:
-            book = clib.findBook(candidate)
-            if book:
-                ret = book
-                break;
-
-        print(ret);
-        response = jsonify({'return': ret})
-    return response
-'''
 
 def handler(signum, frame):
     print("Exit libServer")

@@ -12,6 +12,7 @@ class MARC:
     def __init__(self, marcString, debug = False):
         if debug:
             print(marcString)
+        self.orgString = marcString
         self.debug = debug
         self.marc = marcString.replace(begin, "").replace(end, "")
         self.marc = self.marc.replace("\x1d", "").replace(BEGIN, begin).replace(END, end)
