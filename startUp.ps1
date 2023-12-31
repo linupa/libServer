@@ -26,6 +26,9 @@ Invoke-Expression "Remove-NetFireWallRule -DisplayName $fireWallDisplayName";
 Invoke-Expression "New-NetFireWallRule -DisplayName $fireWallDisplayName -Direction Outbound -LocalPort $portsStr -Action Allow -Protocol TCP";
 Invoke-Expression "New-NetFireWallRule -DisplayName $fireWallDisplayName -Direction Inbound -LocalPort $portsStr -Action Allow -Protocol TCP";
 
+Echo "Remove CLIB log"
+del C:\CLIB\Data\CLIB_log.ldf
+
 Echo "Start Docker"
 $password = "hkmcclibrary"
 wsl bash -c "echo $password | sudo -S service docker start"
