@@ -113,7 +113,7 @@ def uploadDatabase(clib, db, widgets, forced, debug = False):
         mismatch = True
     for key in updates[1]:
         src = rentlog[key]
-        dst = currDb[key]
+        dst = mdbDict[key]
         if (src["_id"] != dst["_id"] or src["book_id"] != dst["book_id"] or
             src["user_id"] != dst["user_id"]):
             print("Mismatch")

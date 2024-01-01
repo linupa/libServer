@@ -495,6 +495,7 @@ class CLibrary:
                 entry['USER_NAME'] = ""
 
             ret.append(entry)
+        ret.sort(key=lambda e : logKey(e,"LENT_DATE"))
 
         return ret
 
