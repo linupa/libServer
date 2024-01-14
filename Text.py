@@ -1,3 +1,9 @@
+def getText(key):
+    if key in text:
+        return text[key]
+    else:
+        return key
+
 text = {
 	"fromDate": "등록일 시작",
 	"toDate": "등록일 끝",

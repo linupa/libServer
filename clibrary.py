@@ -420,51 +420,53 @@ class CLibrary:
             match = True
         print(f"Find {match}")
         ret = list()
-        if match:
-            if bookId:
+        if bookId:
+            if match:
                 print(bookId)
                 if bookId in self.books:
                     return self.books[bookId]
-            elif userId:
-                print(f"UserID: {userId}")
-                for key in self.rents:
-                    rent = self.rents[key]
-                    if userId != "*" and userId != rent['USERS']:
+            else:
+                keyword64 = bookId
+                print(keyword64)
+                keywordBin = base64.b64decode(keyword64)
+                print(keywordBin)
+                keyword = keywordBin.decode('UTF8')
+                print(f"Decoded {bookId}")
+                if keyword in self.books:
+                    return list([self.books[keyword]])
+                for key in self.books:
+                    book = self.books[key]
+                    if book['DELETE_YN'] == 'Y':
                         continue
-                    if rent['STATS'] != 1 and rent['STATS'] != 3:
-                        continue
-                    book = self.books[key].copy()
-                    book['BARCODE'] = key
-                    book['STATS'] = rent['STATS']
-                    book['LENT_DATE'] = rent['LENT_DATE']
-                    book['RETURN_DATE'] = rent['RETURN_DATE']
-                    book['USER'] = rent['USERS']
-                    book['EXTEND_COUNT'] = rent['EXTEND_COUNT']
-                    if rent['USERS'] in self.users:
-                        book['USER_NAME'] = self.users[rent['USERS']]['USER_NAME']
-
-                    ret.append(book)
-        else:
-            keyword64 = bookId
-            print(keyword64)
-            keywordBin = base64.b64decode(keyword64)
-            print(keywordBin)
-            keyword = keywordBin.decode('UTF8')
-            print(f"Decoded {bookId}")
-            if keyword in self.books:
-                return list([self.books[keyword]])
-            for key in self.books:
-                book = self.books[key]
-                if book['DELETE_YN'] == 'Y':
+                    if book['BOOKNAME'].find(keyword) >= 0:
+                        ret.append(book)
+                    elif book['TOTAL_NAME'].find(keyword) >= 0:
+                        ret.append(book)
+                    elif book['ISBN'] == keyword:
+                        ret.append(book)
+                    if len(ret) >= 100:
+                        break
+        elif userId:
+            print(f"UserID: {userId}")
+            for key in self.rents:
+                rent = self.rents[key]
+                if userId != "*" and userId != rent['USERS']:
                     continue
-                if book['BOOKNAME'].find(keyword) >= 0:
-                    ret.append(book)
-                elif book['TOTAL_NAME'].find(keyword) >= 0:
-                    ret.append(book)
-                elif book['ISBN'] == keyword:
-                    ret.append(book)
-                if len(ret) >= 100:
-                    break
+                if rent['STATS'] != 1 and rent['STATS'] != 3:
+                    continue
+                book = self.books[key].copy()
+                book['BARCODE'] = key
+                book['STATS'] = rent['STATS']
+                book['LENT_DATE'] = rent['LENT_DATE']
+                book['RETURN_DATE'] = rent['RETURN_DATE']
+                book['USER'] = rent['USERS']
+                book['EXTEND_COUNT'] = rent['EXTEND_COUNT']
+                if rent['USERS'] in self.users:
+                    book['USER_NAME'] = self.users[rent['USERS']]['USER_NAME']
+
+                ret.append(book)
+            ret.sort(key=lambda e : logKey(e,"LENT_DATE"))
+
         return ret
 
     def getHistory(self, period):
@@ -495,7 +497,7 @@ class CLibrary:
                 entry['USER_NAME'] = ""
 
             ret.append(entry)
-        ret.sort(key=lambda e : logKey(e,"LENT_DATE"))
+        ret.sort(key=lambda e : e["REG_DATE"])
 
         return ret
 

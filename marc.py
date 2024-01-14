@@ -80,6 +80,7 @@ class MARC:
             except Exception as e:
                 encoded += bytes(" ", ENCODING)
         if self.debug:
+            print("=" * 10 + " Decode")
             print(len(encoded))
         self.header = encoded[0:24].decode(ENCODING)
         encoded = encoded[24:]
@@ -121,11 +122,13 @@ class MARC:
 
         sizes, encodedGroups = self.encodeGroup()
         if self.debug:
+            print("=" * 10 + " Encode")
             print(sizes)
         groupStr = encodedGroups
         if self.debug:
-            print(groupStr)
-            print(self.rawGroups)
+            print("=" * 10 + " Group compare")
+            print(groupStr.replace("\r", ", "))
+            print(self.rawGroups.replace("\r", ", "))
             print(groupStr == self.rawGroups)
         directory = ""
         offset = 0
@@ -135,8 +138,8 @@ class MARC:
             directory += f"{offset:05}"
             offset += sizes[i]
         if self.debug:
-            print(directory)
-            print(self.rawDirectory)
+            print(f"[{directory}]")
+            print(f"[{self.rawDirectory}]")
 
         marc = self.header + directory + end + encodedGroups
         midLength = len(self.header + directory + end)
@@ -144,8 +147,8 @@ class MARC:
 
         if self.debug:
             print("Compare:")
-            print(marc)
-            print(self.marc)
+            print(marc.replace("\r", ", "))
+            print(self.marc.replace("\r", ", "))
             print(f"Length: {length}")
             print(f"MidLength: {midLength}")
 
@@ -161,6 +164,16 @@ class MARC:
                 return entry
         else:
             return None
+
+    def setValue(self, groupKey, key, value):
+        group = self.findGroup(groupKey)
+        if not group:
+            group = list()
+            group.append(groupKey)
+            group.append("  ")
+            group.append(dict())
+            self.groups.append(group)
+        group[2][key] = value
 
     def getValue(self, group, value, default = ""):
         group = self.findGroup(group)
@@ -185,6 +198,7 @@ class MARC:
         info["EX_CATE"] = self.getValue("049", "f")
         info["ISBN"] = self.getValue("020", "a")
         info["BOOKNAME"] = self.getValue("245", "a")
+        info["BOOKNUM"] = self.getValue("245", "n")
         info["AUTHOR"] = self.getValue("245", "d")
 
         info["CATEGORY"] = self.getValue("056", "a")
@@ -197,5 +211,35 @@ class MARC:
         info["CLAIM"] = "_".join((info["EX_CATE"], info["CATEGORY"], info["AUTHOR_CODE"], info["CLAIMNUM"], info["COPYNUM"])).strip()
 
         return info
+
+    def setValueHelper(self, group, key, info, infoKey):
+        if infoKey not in info:
+            return
+        self.setValue(group, key, info, infoKey)
+
+
+    def setBookInfo(self, info):
+        self.setValueInfo("020", "a", info, "ISBN")
+
+        self.setValueHelper("049", "c", info, "COPYNUM")
+        self.setValueHelper("049", "f", info, "EX_CATE")
+        self.setValueHelper("049", "l", info, "BARCODE")
+        self.setValueHelper("049", "v", info, "CLAIMNUM")
+
+        self.setValueHelper("056", "a", info, "CATEGORY")
+
+        self.setValueHelper("090", "a", info, "CATEGORY")
+        self.setValueHelper("090", "b", info, "AUTHOR_CODE")
+        self.setValueHelper("090", "c", info, "CLAIMNUM")
+
+        self.setValueHelper("100", "a", info, "AUTHOR")
+
+        self.setValueHelper("245", "a", info, "BOOKNAME")
+        self.setValueHelper("245", "d", info, "AUTHOR")
+        self.setValueHelper("245", "n", info, "BOOKNUM")
+
+        self.setValueHelper("260", "b", info, "PUBLISH")
+
+        self.setValueHelper("440", "a", info, "TOTAL_NAME")
 
 

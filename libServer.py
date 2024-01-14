@@ -28,6 +28,7 @@ global localIp
 global proxy
 
 app = Flask(__name__)
+CORS(app, supports_credentials=True, resources={r"/": {"origins": "*"}})
 CORS(app, supports_credentials=True, resources={r"/uploadImage": {"origins": "*"}})
 CORS(app, supports_credentials=True, resources={r"/check": {"origins": "*"}})
 CORS(app, supports_credentials=True, resources={r"/checkOut": {"origins": "*"}})
@@ -54,6 +55,21 @@ proxy = False
 
 #################### GET #####################
 @app.route('/', methods=['GET'])
+def root():
+    print("=" * 80)
+    print("/")
+    html = str()
+    html += '<html>'
+    html += '<header>'
+    html += '<meta http-equiv="refresh" content="1; URL=https://goolibleee.github.io/hkmcclib" />'
+    html += '</header>'
+    html += '<body>'
+    html += 'Redirect to HKMCC lib page'
+    html += '</body>'
+    html += '</html>'
+
+    return html
+
 @app.route('/check', methods=['GET'])
 def check():
     print("=" * 80)
