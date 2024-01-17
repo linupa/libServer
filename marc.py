@@ -11,9 +11,11 @@ begin = "\r"
 end = "\n"
 
 class Field:
-    def __init__(self, tag, encoded: bytes):
-        decoded = encoded.decode(ENCODING)
+    def __init__(self, tag, encoded = None):
         self.tag = tag
+        if encoded == None:
+            return
+        decoded = encoded.decode(ENCODING)
         if tag in {"005", "008"}:
             self.data = decoded[0:-1]
         else:
@@ -86,57 +88,6 @@ class MARC:
             print(self.marc)
 
 
-    def decodeField(self, field):
-        code = field[0:2]
-        data = field[2:]
-        idx = 0
-        items = dict()
-        key = None
-        item = ""
-        entries = list()
-        if self.debug:
-            print(f"Field: {repr(field)}")
-        while idx < len(data):
-            c = data[idx]
-            if c == begin:
-                if key:
-                    items[key] = item
-                idx +=1
-                key = data[idx]
-                item = ""
-            elif c == end:
-                if key:
-                    items[key] = item
-                break
-            else:
-                item += c
-
-            idx += 1
-        entries.append(code)
-        if len(items) > 0:
-            entries.append(items)
-        else:
-            entries.append(data[0:-1])
-        return entries
-
-    def encodeField(self):
-        sizes = list()
-        encoded = ""
-        if self.debug:
-            print(self.fields2)
-        for field in self.fields2:
-            fieldStr = field[1]
-            if type(field[2]) == str:
-                fieldStr += field[2]
-            else:
-                for key in field[2]:
-                    fieldStr += begin + key + field[2][key]
-            fieldStr += end
-            encodedField = bytes(fieldStr, ENCODING)
-            encoded += fieldStr
-            sizes.append(len(encodedField))
-        return sizes, encoded
-
     def decode(self):
         encoded = bytes()
         for c in self.marc:
@@ -171,18 +122,6 @@ class MARC:
         self.rawFields = encoded.decode(ENCODING)
         fieldIdx = 0
         self.fields = list()
-        self.fields2 = list()
-        while idx < len(encoded):
-            for last in range(idx, len(encoded)):
-                if encoded[last] == 0x0a: # 0x25: # "%"
-                    break
-            entry = encoded[idx:last+1]
-            field = [self.directory[fieldIdx][0]] + self.decodeField(entry.decode(ENCODING))
-            self.fields2.append(field)
-            if self.debug:
-                print(f"{idx}: {len(entry)}: {field}")
-            idx = last + 1
-            fieldIdx += 1
 
         for (key, offset, size) in self.directory:
             fromIdx = int(offset)
@@ -194,7 +133,6 @@ class MARC:
 
     def encode(self):
 
-        sizes2, fieldStr2 = self.encodeField()
         fieldStr = str()
         sizes = list()
         for field in self.fields:
@@ -205,12 +143,8 @@ class MARC:
             print("=" * 10 + " Field compare")
             print("1: " + fieldStr.replace("\r", ", "))
             print("2: " + self.rawFields.replace("\r", ", "))
-            print("3: " + fieldStr2.replace("\r", ", "))
             print(fieldStr == self.rawFields)
-            print(fieldStr2 == self.rawFields)
             print(sizes)
-            print(sizes2)
-            assert(fieldStr == fieldStr2)
 
         directory = ""
         offset = 0
@@ -240,33 +174,32 @@ class MARC:
 
         return marcStr
 
-    def findField(self, field):
-        for entry in self.fields2:
-            if entry[0] == field:
+    def findField(self, tag):
+        for entry in self.fields:
+            if entry.tag == tag:
                 return entry
         else:
             return None
 
-    def setValue(self, fieldKey, key, value):
-        field = self.findField(fieldKey)
+    def setValue(self, tag, key, value):
+        field = self.findField(tag)
         if not field:
-            field = list()
-            field.append(fieldKey)
-            field.append("  ")
-            field.append(dict())
+            field = Field(tag)
+            field.indicator = "  "
+            field.subfields = OrderedDict()
             self.fields.append(field)
-        field[2][key] = value
+        field.subfields[key] = value
 
     def getValue(self, field, value, default = ""):
         field = self.findField(field)
-        if field and value in field[2]:
-            value = field[2][value]
+        if field and value in field.subfields:
+            value = field.subfields[value]
         else:
             value = default
         return value.strip()
 
     def check(self):
-        field = self.findField("049")[2]
+        field = self.findField("049").subfields
         if "HK0" not in field["l"]:
             return
         if "f" not in field or field["f"] != text["kid"]:
