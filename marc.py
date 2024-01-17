@@ -1,4 +1,6 @@
 from Text import text
+from collections import OrderedDict
+from datetime import datetime
 
 #ENCODING = 'euc-kr'
 ENCODING = 'cp949'
@@ -7,6 +9,67 @@ BEGIN = "\x1f"
 END = "\x1e"
 begin = "\r"
 end = "\n"
+
+class Field:
+    def __init__(self, tag, encoded: bytes):
+        decoded = encoded.decode(ENCODING)
+        self.tag = tag
+        if tag in {"005", "008"}:
+            self.data = decoded[0:-1]
+        else:
+            self.indicator = decoded[0:2]
+            self.subfields = OrderedDict()
+            key = None
+            item = ""
+            entries = list()
+            idx = 0
+            while idx < len(decoded):
+                c = decoded[idx]
+                if c == begin:
+                    if key:
+                        self.subfields[key] = item
+                    idx +=1
+                    key = decoded[idx]
+                    item = ""
+                elif c == end:
+                    if key:
+                        self.subfields[key] = item
+                    break
+                else:
+                    item += c
+
+                idx += 1
+
+    def encode(self):
+        fieldStr = str()
+        encoded = str()
+        if self.tag in {"005", "008"}:
+            fieldStr += self.data
+        else:
+            fieldStr += self.indicator
+            for key in self.subfields:
+                fieldStr += begin + key + self.subfields[key]
+        fieldStr += end
+        encodedField = bytes(fieldStr, ENCODING)
+        encoded += fieldStr
+        size = len(encodedField)
+        return size, encoded
+
+    def __str__(self):
+        ret = str()
+        ret += f"{self.tag}: "
+        if self.tag in {"005", "008"}:
+            ret += f"[{self.data}]"
+        else:
+            ret += f"[{self.indicator}]: "
+            subfields = list()
+            for key in self.subfields:
+                subfields.append(f"{key}: {self.subfields[key]}")
+            ret += ", ".join(subfields)
+        return ret
+
+    def __repr__(self):
+        return self.__str__()
 
 class MARC:
     def __init__(self, marcString, debug = False):
@@ -23,14 +86,16 @@ class MARC:
             print(self.marc)
 
 
-    def decodeGroup(self, group):
-        code = group[0:2]
-        data = group[2:]
+    def decodeField(self, field):
+        code = field[0:2]
+        data = field[2:]
         idx = 0
         items = dict()
         key = None
         item = ""
         entries = list()
+        if self.debug:
+            print(f"Field: {repr(field)}")
         while idx < len(data):
             c = data[idx]
             if c == begin:
@@ -54,22 +119,22 @@ class MARC:
             entries.append(data[0:-1])
         return entries
 
-    def encodeGroup(self):
+    def encodeField(self):
         sizes = list()
         encoded = ""
         if self.debug:
-            print(self.groups)
-        for group in self.groups:
-            groupStr = group[1]
-            if type(group[2]) == str:
-                groupStr += group[2]
+            print(self.fields2)
+        for field in self.fields2:
+            fieldStr = field[1]
+            if type(field[2]) == str:
+                fieldStr += field[2]
             else:
-                for key in group[2]:
-                    groupStr += begin + key + group[2][key]
-            groupStr += end
-            encodedGroup = bytes(groupStr, ENCODING)
-            encoded += groupStr
-            sizes.append(len(encodedGroup))
+                for key in field[2]:
+                    fieldStr += begin + key + field[2][key]
+            fieldStr += end
+            encodedField = bytes(fieldStr, ENCODING)
+            encoded += fieldStr
+            sizes.append(len(encodedField))
         return sizes, encoded
 
     def decode(self):
@@ -103,37 +168,54 @@ class MARC:
             if self.debug:
                 print(f"{key}: {offset} + {size}")
             self.directory.append((key, offset, size))
-        self.rawGroups = encoded.decode(ENCODING)
-        groupIdx = 0
-        self.groups = list()
+        self.rawFields = encoded.decode(ENCODING)
+        fieldIdx = 0
+        self.fields = list()
+        self.fields2 = list()
         while idx < len(encoded):
             for last in range(idx, len(encoded)):
                 if encoded[last] == 0x0a: # 0x25: # "%"
                     break
             entry = encoded[idx:last+1]
-            group = [self.directory[groupIdx][0]] + self.decodeGroup(entry.decode(ENCODING))
-            self.groups.append(group)
+            field = [self.directory[fieldIdx][0]] + self.decodeField(entry.decode(ENCODING))
+            self.fields2.append(field)
             if self.debug:
-                print(f"{idx}: {len(entry)}: {group}")
+                print(f"{idx}: {len(entry)}: {field}")
             idx = last + 1
-            groupIdx += 1
+            fieldIdx += 1
+
+        for (key, offset, size) in self.directory:
+            fromIdx = int(offset)
+            toIdx = fromIdx + int(size)
+            data = encoded[fromIdx:toIdx]
+            field = Field(key, data)
+            self.fields.append(field)
+
 
     def encode(self):
 
-        sizes, encodedGroups = self.encodeGroup()
+        sizes2, fieldStr2 = self.encodeField()
+        fieldStr = str()
+        sizes = list()
+        for field in self.fields:
+            size, string = field.encode()
+            fieldStr += string
+            sizes.append(size)
         if self.debug:
-            print("=" * 10 + " Encode")
+            print("=" * 10 + " Field compare")
+            print("1: " + fieldStr.replace("\r", ", "))
+            print("2: " + self.rawFields.replace("\r", ", "))
+            print("3: " + fieldStr2.replace("\r", ", "))
+            print(fieldStr == self.rawFields)
+            print(fieldStr2 == self.rawFields)
             print(sizes)
-        groupStr = encodedGroups
-        if self.debug:
-            print("=" * 10 + " Group compare")
-            print(groupStr.replace("\r", ", "))
-            print(self.rawGroups.replace("\r", ", "))
-            print(groupStr == self.rawGroups)
+            print(sizes2)
+            assert(fieldStr == fieldStr2)
+
         directory = ""
         offset = 0
         for i in range(len(sizes)):
-            directory += self.groups[i][0]
+            directory += self.fields[i].tag
             directory += f"{sizes[i]:04}"
             directory += f"{offset:05}"
             offset += sizes[i]
@@ -141,9 +223,9 @@ class MARC:
             print(f"[{directory}]")
             print(f"[{self.rawDirectory}]")
 
-        marc = self.header + directory + end + encodedGroups
+        marc = self.header + directory + end + fieldStr
         midLength = len(self.header + directory + end)
-        length = midLength + len(bytes(encodedGroups, ENCODING)) + 1
+        length = midLength + len(bytes(fieldStr, ENCODING)) + 1
 
         if self.debug:
             print("Compare:")
@@ -158,39 +240,39 @@ class MARC:
 
         return marcStr
 
-    def findGroup(self, group):
-        for entry in self.groups:
-            if entry[0] == group:
+    def findField(self, field):
+        for entry in self.fields2:
+            if entry[0] == field:
                 return entry
         else:
             return None
 
-    def setValue(self, groupKey, key, value):
-        group = self.findGroup(groupKey)
-        if not group:
-            group = list()
-            group.append(groupKey)
-            group.append("  ")
-            group.append(dict())
-            self.groups.append(group)
-        group[2][key] = value
+    def setValue(self, fieldKey, key, value):
+        field = self.findField(fieldKey)
+        if not field:
+            field = list()
+            field.append(fieldKey)
+            field.append("  ")
+            field.append(dict())
+            self.fields.append(field)
+        field[2][key] = value
 
-    def getValue(self, group, value, default = ""):
-        group = self.findGroup(group)
-        if group and value in group[2]:
-            value = group[2][value]
+    def getValue(self, field, value, default = ""):
+        field = self.findField(field)
+        if field and value in field[2]:
+            value = field[2][value]
         else:
             value = default
         return value.strip()
 
     def check(self):
-        group = self.findGroup("049")[2]
-        if "HK0" not in group["l"]:
+        field = self.findField("049")[2]
+        if "HK0" not in field["l"]:
             return
-        if "f" not in group or group["f"] != text["kid"]:
+        if "f" not in field or field["f"] != text["kid"]:
             print("Has no KID")
 #            print(self.marc)
-            group["f"] = text["kid"]
+            field["f"] = text["kid"]
 
     def getBookInfo(self):
         info = dict()
@@ -212,14 +294,17 @@ class MARC:
 
         return info
 
-    def setValueHelper(self, group, key, info, infoKey):
+    def setValueHelper(self, field, key, info, infoKey):
         if infoKey not in info:
             return
-        self.setValue(group, key, info, infoKey)
+        self.setValue(field, key, info[infoKey])
 
 
     def setBookInfo(self, info):
-        self.setValueInfo("020", "a", info, "ISBN")
+        now = datetime.now().strftime("%Y%m%d%H%M%S")
+        print(f"Update book info at {now}")
+
+        self.setValueHelper("020", "a", info, "ISBN")
 
         self.setValueHelper("049", "c", info, "COPYNUM")
         self.setValueHelper("049", "f", info, "EX_CATE")
@@ -241,5 +326,7 @@ class MARC:
         self.setValueHelper("260", "b", info, "PUBLISH")
 
         self.setValueHelper("440", "a", info, "TOTAL_NAME")
+
+        print(self.fields)
 
 

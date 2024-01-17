@@ -212,7 +212,7 @@ def updateSQL(updates, srcEntries, clib, dbName, keyName, callback = None, inter
     if callback:
         callback(100)
 
-def updateCloud(updates, srcEntries, dstEntries, callback):
+def updateCloud(updates, srcEntries, dstEntries, callback = None):
     totalCount = len(updates[0]) + len(updates[1]) + len(updates[2])
     if totalCount == 0:
         totalCount = 1
@@ -286,6 +286,16 @@ def encryptUserInfo(users):
             except Exception as e:
                 print("Exception while encrypting email")
 
+def convertEntryToMDB(fromDb: dict, key: str, conversion: dict):
+    converted = list()
+    dst = dict()
+    for srcKey in src:
+        if srcKey not in conversion:
+            continue
+        dstKey = conversion[srcKey]
+        dst[dstKey] = src[srcKey]
+    return dst
+
 def convertToMDB(fromDb: dict, key: str, conversion: dict):
     converted = list()
     for seqId in fromDb:
@@ -303,6 +313,24 @@ def convertToMDB(fromDb: dict, key: str, conversion: dict):
     converted = makeUnique(converted, key)
 
     return converted
+
+def convertEntryToSQL(mdbEntry, revConv: dict):
+    conversion = dict()
+    for convKey in revConv:
+        value = revConv[convKey]
+        conversion[value] = convKey
+
+    dstEntry = dict()
+    for valueKey in mdbEntry:
+        if valueKey not in conversion:
+            continue
+        dstEntry[conversion[valueKey]] = mdbEntry[valueKey]
+    if 'ATTACH' in dstEntry and not dstEntry['ATTACH']:
+        dstEntry["ATTACH"] = "N"
+    if 'ATTACH_USER' in dstEntry and not dstEntry['ATTACH_USER'] == "":
+        dstEntry['ATTACH'] = ""
+
+    return dstEntry
 
 def convertToSQL(mdb, key, revConv: dict, callback = None, interval = 100):
     conversion = dict()

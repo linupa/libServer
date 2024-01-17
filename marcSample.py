@@ -26,8 +26,8 @@ if __name__  == "__main__":
     #print(f"Direct: {directory}")
     #print(len(directory))
     #print(f"Data  : {data}")
-    for entry in marc.groups:
-        print(f"Group [{entry}]")
+    for entry in marc.fields:
+        print(f"Field [{entry}]")
     print(len(marc.marc))
     marc.check()
     print(marc.encode())
