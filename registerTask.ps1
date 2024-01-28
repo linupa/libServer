@@ -6,3 +6,4 @@ Register-ScheduledTask -TaskName "LibServerPrep" -Action $a -Trigger $t -Setting
 
 # Delete
 # schtasks /Delete /TN "LibServerPrep"
+# schtasks /Delete /TN "WSL2PortsBridge"
