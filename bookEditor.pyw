@@ -14,12 +14,6 @@ from dbUtil import *
 from Text import text, getText
 from marc import MARC
 
-global sheet
-global selectedRow
-global bookInfo
-
-selectedRow = 0
-
 def setText(widget, text):
     widget.delete("0.0", tk.END)
     widget.insert(tk.END, text)
@@ -29,10 +23,8 @@ def readText(widget):
 
 def resize(event):
     pass
-#    global sheet
 #    print("Configure changed")
 #    print(event)
-#    sheet.height_and_width(event.width,event.height - 100)
 
 class BookInfo:
     def __init__(self, connection, window):
@@ -145,10 +137,12 @@ class BookInfo:
 
     def searchBook(self, keyword):
         ret = list()
+        keyword = keyword.lower()
         for key in self.books:
             book = self.books[key]
-            if ( keyword in book["title"] or
-                 keyword in book["series"] ):
+            if ( keyword in book["title"].lower() or
+                 keyword in book["series"].lower() or
+                 keyword in book["author"].lower()):
                 ret.append(book)
         return ret
 
@@ -188,8 +182,6 @@ class BookInfo:
 
 
 if __name__ == '__main__':
-  global sheet
-  global bookInfo
   path = __file__
 
   if "/" in path:
@@ -222,7 +214,7 @@ if __name__ == '__main__':
   keywordLabel = tk.Label(leftFrame, text=getText('keyword'))
   keywordText = tk.Text(leftFrame, width=80, height=2)
 
-  sheet= tksheet.Sheet(leftFrame, width=800, height=600, column_width=150)
+  sheet = tksheet.Sheet(leftFrame, width=800, height=600, column_width=150)
 
   search = tk.Button(leftFrame, text=text["search"])
 
@@ -232,11 +224,8 @@ if __name__ == '__main__':
   search["state"] = "disabled"
 
   print("Open MongoDB")
-  showBooks = list()
 
   def searchBooks(args):
-    global showBooks
-    global bookInfo
 
     filters = dict()
     print("Search")
@@ -267,9 +256,8 @@ if __name__ == '__main__':
     selectBook(row)
 
   def keyDownSheet(event):
-    global selectedRow
     print(event.keysym)
-    row = selectedRow
+    row = bookInfo.selectedRow
     if event.keysym == "Up":
         row -= 1
     if event.keysym == "Down":
@@ -277,15 +265,13 @@ if __name__ == '__main__':
     selectBook(row)
 
   def selectBook(row):
-    global selectedRow
-    global bookInfo
     if type(row) == None or row < 0 or row >= len(sheet.get_sheet_data()):
         return
     bottom = False
-    if selectedRow < row:
+    if bookInfo.selectedRow < row:
         bottom = True
     sheet.see(row = row, bottom_right_corner = bottom)
-    selectedRow = row
+    bookInfo.selectedRow = row
     sheet.dehighlight_all()
     sheet.highlight_rows(rows=[row], bg="#8080ff")
     bookId = sheet.get_cell_data(row, 0)

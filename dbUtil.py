@@ -3,6 +3,7 @@ import base64
 import rsa
 from config import Config
 import requests
+import subprocess
 
 sqlBookDict = {
     'SEQ': 'seqnum',
@@ -558,6 +559,9 @@ def reportServerLog(db, action, misc = dict()):
     response = requests.get(api_url)
     report["ip"] = response.json()['ip']
     report["time"] = str(datetime.datetime.now())
+    commit = subprocess.Popen(['git', 'rev-parse', 'HEAD'], stdout=subprocess.PIPE)
+    out, _ = commit.communicate()
+    report["commit"] = out.decode().strip()
 
     db.serverLog.insert_one(report)
 
