@@ -3,3 +3,5 @@ gql>=3.4.1
 grpcio>=1.51.1
 pymongo>=4.3.3
 pyodbc>=4.0.35
+rsa>=4.9
+requests>=2.31
