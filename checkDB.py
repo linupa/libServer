@@ -1,7 +1,5 @@
 import os
 from pymongo import MongoClient
-#from config import Config
-#from clibrary import CLibrary
 from dbUtil import *
 from marc import MARC
 from authorCode import getAuthorCode
@@ -146,9 +144,11 @@ def checkDB(mongoDb):
 
 if __name__ == '__main__':
     # Open MongoDB
-#    password = Config['password']
-#    connection = Config['connection'].format(password)
-    password = os.environ["MONGODB_PASSWORD"]
+    if "ACTION" in os.environ:
+        password = os.environ["MONGODB_PASSWORD"]
+    else:
+        from config import Config
+        password = Config['password']
     connection = 'mongodb+srv://linupa:{}@hkmcclibrary.s59ur1w.mongodb.net/?retryWrites=true&w=majority'.format(password)
     print(connection)
     client = MongoClient(connection)
