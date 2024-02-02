@@ -115,6 +115,7 @@ class BookInfo:
         marc.decode()
         marc.setBookInfo(convertEntryToSQL(book, sqlBookDict))
         self.marcs[seq]["MARC_DATA"] = marc.encode()
+        self.marcs[seq]["DELETE_YN"] = book["deleted"]
         print(f"After:  {self.marcs[seq]}")
 
         updates = [list(), [key], list()]
