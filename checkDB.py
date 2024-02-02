@@ -1,6 +1,7 @@
+import os
 from pymongo import MongoClient
-from config import Config
-from clibrary import CLibrary
+#from config import Config
+#from clibrary import CLibrary
 from dbUtil import *
 from marc import MARC
 from authorCode import getAuthorCode
@@ -8,9 +9,6 @@ from authorCode import getAuthorCode
 import dns.resolver
 dns.resolver.default_resolver=dns.resolver.Resolver(configure=False)
 dns.resolver.default_resolver.nameservers=['8.8.8.8']
-
-password = Config['password']
-connection = Config['connection'].format(password)
 
 def checkDB(mongoDb):
     print("Check book DB")
@@ -38,7 +36,7 @@ def checkDB(mongoDb):
     print("="*80)
     print("Check DB")
     numDeleted = 0
-    states = dict()
+    stateHist = dict()
     seqNums = set()
     for key in books:
         book = books[key]
@@ -53,7 +51,7 @@ def checkDB(mongoDb):
             print(f"Delete flag does not match in book and marc")
             print(book)
             print(marcs[seqnum])
-        if book['deleted'] in {"Y", "y"}:
+        if book['deleted'].lower() == "y":
             numDeleted += 1
             if key in rents:
                 print(f"Deleted book has a state")
@@ -65,7 +63,7 @@ def checkDB(mongoDb):
         if seqnum in rents:
             state = rents[seqnum]['state']
 #            print(f"{key}: {state}")
-            states[state] = states[state] + 1 if state in states else 1
+            stateHist[state] = stateHist[state] + 1 if state in stateHist else 1
 
     print("Check MARC")
     for seqnum in marcs:
@@ -123,34 +121,35 @@ def checkDB(mongoDb):
 
     numValid = len(books) - numDeleted
     numAvail = numValid
-    for state in states:
-        numAvail -= states[state]
+    for state in stateHist:
+        numAvail -= stateHist[state]
 
     print(f"Avaiable {numAvail} / Valld {numValid} / All {len(books)} / Deleted {numDeleted}")
-    print(states)
+    print(stateHist)
 
-    for key in rents:
-        print(rents[key])
-        break
     keyMap = {"idx": "_id", "book": "book_id", "state": "book_state", "user": "user_id", "date": "timestamp", "retDate": "return_date"}
     noReturn = checkRentHistory(dict2list(rentLogs), keyMap)
     count = 0
     for entry in noReturn:
         seqnum = books[entry]["seqnum"]
+        userId = noReturn[entry]
 #        if entry not in rents:
         if seqnum not in rents:
             print(f"Book {entry} is not in rent list")
             count += 1
-#        else:
-#            print(f"Book {entry} is int state {rents[seqnum]['state']}")
+        elif userId != rents[seqnum]['user_id']:
+            print(f"{entry} Renter {userId} is different from {rents[seqnum]['user_id']}")
+            count += 1
+
     if count > 0:
         print(f"Mismatch cound {count}")
-#    print(noReturn)
-#    print(rents.keys())
-
 
 if __name__ == '__main__':
     # Open MongoDB
+#    password = Config['password']
+#    connection = Config['connection'].format(password)
+    password = os.environ["MONGODB_PASSWORD"]
+    connection = 'mongodb+srv://linupa:{}@hkmcclibrary.s59ur1w.mongodb.net/?retryWrites=true&w=majority'.format(password)
     print(connection)
     client = MongoClient(connection)
     mongoDb = client.library
