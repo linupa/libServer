@@ -144,6 +144,7 @@ def checkDB(mongoDb):
 
 if __name__ == '__main__':
     # Open MongoDB
+    print(os.environ)
     if "ACTION" in os.environ:
         password = os.environ["MONGODB_PASSWORD"]
     else:
