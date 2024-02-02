@@ -1,7 +1,6 @@
 import datetime
 import base64
 import rsa
-from config import Config
 import requests
 import subprocess
 
@@ -261,7 +260,12 @@ def updateCloud(updates, srcEntries, dstEntries, callback = None):
         callback(100)
 
 def encryptUserInfo(users):
-    prk = rsa.PrivateKey.load_pkcs1(Config['key'],'PEM')
+
+    if "ACTION" in os.environ:
+        prk = ""
+    else:
+        from config import Config
+        prk = rsa.PrivateKey.load_pkcs1(Config['key'],'PEM')
 
     for key in users:
         user = users[key]
