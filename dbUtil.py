@@ -261,7 +261,7 @@ def updateCloud(updates, srcEntries, dstEntries, callback = None):
 
 def encryptUserInfo(users):
 
-    if "ACTION" in os.environ:
+    if "GITHUB_ACTIONS" in os.environ:
         prk = ""
     else:
         from config import Config
