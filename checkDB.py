@@ -3,13 +3,20 @@ from pymongo import MongoClient
 from dbUtil import *
 from marc import MARC
 from authorCode import getAuthorCode
+import subprocess
 
 import dns.resolver
 dns.resolver.default_resolver=dns.resolver.Resolver(configure=False)
 dns.resolver.default_resolver.nameservers=['8.8.8.8']
 
 def checkDB(mongoDb):
-    print("Check book DB")
+    commit = subprocess.Popen(['git', 'rev-parse', 'HEAD'], stdout=subprocess.PIPE)
+    out, _ = commit.communicate()
+    print("="*80)
+    print(f"Commit: {out.decode().strip()}")
+
+    print("="*80)
+    print("Download library DB")
 
     print("="*80)
     print("Book")
@@ -20,6 +27,11 @@ def checkDB(mongoDb):
     print("MARC")
     marcs = mdb2dict(mongoDb.marc)
     print(f"{len(marcs)} MARCs")
+
+    print("="*80)
+    print("User")
+    users = mdb2dict(mongoDb.user)
+    print(f"{len(users)} users")
 
     print("="*80)
     print("Rent")
@@ -85,7 +97,7 @@ def checkDB(mongoDb):
 
 
     print("="*80)
-    print("Check MARC data")
+    print("Check MARC data by regenerating MARC")
     booksFromMarc = dict()
     matchCount = 0
     mismatchCount = 0
@@ -143,6 +155,9 @@ def checkDB(mongoDb):
     print("Check rent history")
     keyMap = {"idx": "_id", "book": "book_id", "state": "book_state", "user": "user_id", "date": "timestamp", "retDate": "return_date"}
     noReturn = checkRentHistory(dict2list(rentLogs), keyMap)
+
+    print("="*80)
+    print("Compare rent history and rent")
     count = 0
     for entry in noReturn:
         seqnum = books[entry]["seqnum"]
@@ -157,13 +172,27 @@ def checkDB(mongoDb):
             count += 1
             errorCount += 1
 
+    print("="*80)
+    print("Compare rent and book")
+    bookPerSeq = dict()
+    for bookId in books:
+        seq = books[bookId]["seqnum"]
+        bookPerSeq[seq] = books[bookId]
+
+    for seqnum in rents:
+        if seqnum not in bookPerSeq:
+            print(f"{seqnum} not in book DB")
+            errorCount += 1
+
     if count > 0:
         print(f"Mismatch cound {count}")
 
-    print(f"Total error count {errorCount}")
     print("="*80)
     print(f"Avaiable {numAvail} / Valld {numValid} / All {len(books)} / Deleted {numDeleted}")
     print(stateHist)
+
+    print("="*80)
+    print(f"Total error count {errorCount}")
 
     return errorCount
 

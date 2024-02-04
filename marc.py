@@ -131,7 +131,7 @@ class MARC:
             self.fields.append(field)
 
 
-    def encode(self):
+    def encode(self, changeDate = False):
 
         fieldStr = str()
         sizes = list()
