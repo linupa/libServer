@@ -171,21 +171,62 @@ def checkDB(mongoDb):
             print(f"{entry} Renter {userId} is different from {rents[seqnum]['user_id']}")
             count += 1
             errorCount += 1
+    if count > 0:
+        print(f"Mismatch cound {count}")
 
     print("="*80)
     print("Compare rent and book")
-    bookPerSeq = dict()
-    for bookId in books:
-        seq = books[bookId]["seqnum"]
-        bookPerSeq[seq] = books[bookId]
-
     for seqnum in rents:
-        if seqnum not in bookPerSeq:
-            print(f"{seqnum} not in book DB")
+        bookId = rents[seqnum]["book_id"]
+        if bookId not in books:
+            print(f"{bookId} not in book DB")
+            errorCount += 1
+            continue
+        if seqnum != books[bookId]["seqnum"]:
+            print(f"Rent {seqnum} does not match Book {bookId} seqnum {books[bookId]['seqnum']}")
+            errorCount += 1
+            continue
+
+    print("="*80)
+    print("Compare rent and user")
+    overdueUsers = set()
+    for seqnum in rents:
+        rent = rents[seqnum]
+        #  Check only rented or overdue cases
+        if rent["state"] not in {1, "1", 3, "3"}:
+            continue
+        if "user_id" not in rent:
+            print("Renter for {rent['book_id']} is missing")
+            errorCount += 1
+            continue
+        bookId = rent["book_id"]
+        userId = rent["user_id"]
+        user = users[userId]
+
+        if user["deleted"] in {"y", "Y"}:
+            print(f"{userId} is renting {bookId}, but ID is deleted")
             errorCount += 1
 
-    if count > 0:
-        print(f"Mismatch cound {count}")
+        if rent["state"] not in {3, "3"}:
+            continue
+
+        overdueUsers.add(userId)
+
+        if user["state"] != 1:
+            print(f"Book {bookId} is overdue, but user {userId} state is not overdue")
+            errorCount += 1
+
+    for userId in users:
+        user = users[userId]
+
+        # Check only only overdue user
+        if user["state"] not in {1, "1"}:
+            continue
+
+        userId = user["_id"]
+        if userId not in overdueUsers:
+            print(f"{userId} is overdue but not in rent")
+            errorCount += 1
 
     print("="*80)
     print(f"Avaiable {numAvail} / Valld {numValid} / All {len(books)} / Deleted {numDeleted}")
@@ -193,6 +234,8 @@ def checkDB(mongoDb):
 
     print("="*80)
     print(f"Total error count {errorCount}")
+    if errorCount > 0:
+        raise
 
     return errorCount
 

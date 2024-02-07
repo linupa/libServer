@@ -506,7 +506,6 @@ def checkRentHistory(rentlog: list, keyMap: dict):
 
     rentlog.sort(key=logCompare)
 
-    print("Check rent history validity...")
     rentLogList = list()
     for i in range(len(rentlog)):
         logCopy = rentlog[i].copy()
