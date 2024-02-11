@@ -439,11 +439,11 @@ class CLibrary:
                     keyword = keyword.lower()
                     if book['DELETE_YN'] == 'Y':
                         continue
-                    if book['BOOKNAME'].find(keyword).lower() >= 0:
+                    if book['BOOKNAME'].lower().find(keyword) >= 0:
                         ret.append(book)
-                    elif book['TOTAL_NAME'].find(keyword).lower() >= 0:
+                    elif book['TOTAL_NAME'].lower().find(keyword) >= 0:
                         ret.append(book)
-                    elif book['AUTHOR'].find(keyword).lower() >= 0:
+                    elif book['AUTHOR'].lower().find(keyword) >= 0:
                         ret.append(book)
                     elif book['ISBN'] == keyword:
                         ret.append(book)

@@ -77,6 +77,9 @@ sqlRentHistoryDict = {
     '_RETURN_DATE': "return_date"
 }
 def logKey(entry, key='timestamp'):
+    if key not in entry:
+        print(f"key {key} not exist")
+        print(entry)
     return datetime.datetime.strptime(entry[key], "%Y-%m-%d %H:%M:%S")
 
 def toNumber(numStr):
