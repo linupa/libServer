@@ -195,12 +195,14 @@ class OCRTest:
         global gVerbose
         gVerbose = verbose
 
-        img = cv2.imread(filename)
+        self.img = cv2.imread(filename)
+        print(self.img.shape)
 
-        img2 = cv2.resize(img, (WIDTH, HEIGHT))
-#        img2 = img
+#        self.img2 = cv2.resize(self.img, (WIDTH, HEIGHT))
+        self.img2 = self.img[1500:2500, 0:3024]
+#        self.img2 = self.img
 
-        gray = cv2.cvtColor(img2, cv2.COLOR_BGR2GRAY)
+        gray = cv2.cvtColor(self.img2, cv2.COLOR_BGR2GRAY)
 
 
         vhf = np.array([[0.0, 0.0, 0.0], [-1.0, 0.0, 1.0], [0.0, 0.0, 0.0]])
@@ -210,6 +212,8 @@ class OCRTest:
         ddepth = cv2.cv.CV_32F if imutils.is_cv2() else cv2.CV_32F
         gradX = cv2.Sobel(gray, ddepth=ddepth, dx=1, dy=0, ksize=-1)
         gradY = cv2.Sobel(gray, ddepth=ddepth, dx=0, dy=1, ksize=-1)
+        self.gradX = 0
+        self.gradY = 0
 
         grad = cv2.subtract(gradX, gradY)
         grad = cv2.convertScaleAbs(grad)
@@ -274,8 +278,8 @@ class OCRTest:
                 lowerLeft = i
         Print(f'lowerLeft {lowerLeft}')
 
-        rotated = rotate_image(img2, tuple([float(barcodeBox[lowerLeft][0]), float(barcodeBox[lowerLeft][1])]), angle*180/math.pi)
-#        rotated = img2
+        rotated = rotate_image(self.img2, tuple([float(barcodeBox[lowerLeft][0]), float(barcodeBox[lowerLeft][1])]), angle*180/math.pi)
+#        rotated = self.img2
 
         textBox = barcodeBox.copy()
         for i in range(4):
@@ -284,9 +288,9 @@ class OCRTest:
             else:
                 textBox[i] = barcodeBox[i] + ver + np.array([0, 5])
 
-        #img3 = img2[textBox[0][1]:textBox[2][1], textBox[0][0]:textBox[1][0]]
+        #img3 = self.img2[textBox[0][1]:textBox[2][1], textBox[0][0]:textBox[1][0]]
         Print(f'{width} x {height}')
-        if width < 10 or height < 10:
+        if width < 10 or height < 5:
             return ""
 
         rotatedGray = cv2.cvtColor(rotated, cv2.COLOR_BGR2GRAY)
@@ -397,6 +401,7 @@ class OCRTest:
         s = 0.0
         count = 0
         height = 40
+        '''
         for i in range(60, 5, -1):
             line = rotatedGray[lf[1] + i, left:right]
             stddev = getStd(line)
@@ -405,10 +410,12 @@ class OCRTest:
                 break;
             s += stddev
             count += 1
+        '''
 #        lf[1] += 10
         print(f"Height {height}")
         img3 = rotatedGray[lf[1]-int(height):lf[1]+10 , left:right]
 
+        '''
         text = pytesseract.image_to_string(img3)
         print(text)
         texts  = text.split("\n")
@@ -417,7 +424,6 @@ class OCRTest:
             if len(text) > 0 and len(text) < 20:
                 detections.add(text)
 
-        '''
         height = 80
         img3 = rotatedGray[lf[1]-int(height):lf[1]+10 , left:right]
         text = pytesseract.image_to_string(img3)
@@ -444,7 +450,6 @@ class OCRTest:
         self.grad = grad
         self.closed = closed
         self.box = box
-        self.img2 = img2
         self.img3 = img3
         self.txtBox = txtBox
         self.textBox = textBox
@@ -472,6 +477,8 @@ class OCRTest:
         hl = self.hl
         lines = self.lines
 
+        cv2.imshow('original', self.img)
+        cv2.imshow('resize', self.img2)
         cv2.imshow('gradX', gradX)
         cv2.imshow('gradY', gradY)
         cv2.imshow('blurred', blurred)
@@ -479,7 +486,7 @@ class OCRTest:
         cv2.imshow('grad', grad)
         cv2.drawContours(closed, [box], -1, (0, 255, 0), 1)
         cv2.imshow('closed', closed)
-        cv2.imshow('cropped', img3)
+#        cv2.imshow('cropped', img3)
         Print(txtBox)
         Print(type(txtBox))
 #        cv2.drawContours(rotated, [box], -1, (255, 0, 0), 1)
@@ -493,19 +500,19 @@ class OCRTest:
         Print(textBox)
         Print(type(textBox))
         cv2.drawContours(img2, [c], -1, (255, 0, 255), 1)
-        for points in lines:
-            x1,y1,x2,y2=points
-            cv2.line(img2,(x1,y1),(x2,y2),(255,0,255),1)
+#        for points in lines:
+#            x1,y1,x2,y2=points
+#            cv2.line(img2,(x1,y1),(x2,y2),(255,0,255),1)
 
-        for points in hl:
-            # Extracted points nested in the list
-            Print(points)
-            x1,y1,x2,y2=points
-            Print(points)
-            # Draw the lines joing the points
-            # On the original image
-            cv2.line(img2,(x1,y1),(x2,y2),(255,255,0),1)
-            # Maintain a simples lookup list for points
+#        for points in hl:
+#            # Extracted points nested in the list
+#            Print(points)
+#            x1,y1,x2,y2=points
+#            Print(points)
+#            # Draw the lines joing the points
+#            # On the original image
+#            cv2.line(img2,(x1,y1),(x2,y2),(255,255,0),1)
+#            # Maintain a simples lookup list for points
         #    lines_list.append([(x1,y1),(x2,y2)])
         #cv2.drawContours(img2, [box], -1, (0, 255, 0), 1)
         #cv2.drawContours(img2, [textBox], -1, (0, 0, 255), 3)
