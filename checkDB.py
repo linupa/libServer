@@ -139,6 +139,9 @@ def checkDB(mongoDb):
         marcBook = booksFromMarc[key]
         mdbBook = books[key]
         for entry in marcBook:
+            # BOOK modification time and MARC time may not be the same
+            if entry == "modification_date":
+                continue
             if entry in mdbBook and marcBook[entry].strip() != mdbBook[entry].strip():
                 print(f"Book {key} mismatch with MARC")
                 print(mdbBook)

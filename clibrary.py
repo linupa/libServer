@@ -256,7 +256,7 @@ class CLibrary:
             if modified:
                 self.updateUser(key)
 
-        keyMap = {"idx": "IDX", "book": "BOOK_CODE", "state": "BOOK_STATE", "user": "USER_CODE", "date": "REG_DATE", "retDate": "_RETURN_DATE"}
+        keyMap = {"idx": "SEQ", "book": "BOOK_CODE", "state": "BOOK_STATE", "user": "USER_CODE", "date": "REG_DATE", "retDate": "_RETURN_DATE"}
         checkRentHistory(self.rentHistory, keyMap)
 
 
@@ -366,7 +366,7 @@ class CLibrary:
     def addHistory(self, rent, user):
         now = datetime.datetime.now()
         history = dict()
-        history['SEQ'] = str(self.getMaxRentLog() + 1)
+        history['SEQ'] = self.getMaxRentLog() + 1
         history['BOOK_CODE'] = rent['BARCODE']
         history['BOOK_STATE'] = rent['STATS']
         history['USER_CODE'] = user

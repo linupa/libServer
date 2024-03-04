@@ -118,12 +118,17 @@ class BookInfo:
         self.marcs[seq]["DELETE_YN"] = book["deleted"]
         print(f"After:  {self.marcs[seq]}")
 
+        info = marc.getBookInfo()
+        book["modification_date"] = info["MOD_DATE"]
+
         updates = [list(), [key], list()]
         print(updates)
+        print(self.books[key])
         updateCloud(updates, self.books, self.db.book)
 
         updates = [list(), [seq], list()]
         print(updates)
+        print(self.marcs[seq])
         updateCloud(updates, self.marcs, self.db.marc)
 
 

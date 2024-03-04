@@ -80,8 +80,12 @@ sqlRentHistoryDict = {
 def logKey(entry, key='timestamp'):
     if key not in entry:
         print(f"key {key} not exist")
-        print(entry)
-    return datetime.datetime.strptime(entry[key], "%Y-%m-%d %H:%M:%S")
+#    print(entry)
+#    print(key)
+    dateStr = entry[key]
+    if "." in dateStr:
+        dateStr = dateStr.split(".")[0]
+    return datetime.datetime.strptime(dateStr, "%Y-%m-%d %H:%M:%S")
 
 def toNumber(numStr):
     ret = ""
@@ -124,17 +128,23 @@ def mdb2list(srcList: list, key = '_id'):
         dstList.append(src)
     return dstList
 
-def list2dict(srcList: list, key = '_id'):
+def list2dict(srcList: list, key = '_id', copy = False):
     dstDict = dict()
     for src in srcList:
         keyValue = src[key]
-        dstDict[keyValue] = src
+        if copy:
+            dstDict[keyValue] = src.copy()
+        else:
+            dstDict[keyValue] = src
     return dstDict
 
-def dict2list(srcDict: dict):
+def dict2list(srcDict: dict, copy = False):
     dstList = list()
     for key in srcDict:
-        dstList.append(srcDict[key])
+        if copy:
+            dstList.append(srcDict[key].copy())
+        else:
+            dstList.append(srcDict[key])
     return dstList
 
 def dictToString(d, labelOnly = False, valueOnly = False):
@@ -234,7 +244,7 @@ def updateCloud(updates, srcEntries, dstEntries, callback = None):
         if len(newEntries) > 0:
             print(f"\rRemaining {len(adds)}", end="", flush=True)
             dstEntries.insert_many(newEntries)
-        print("")
+    print("")
 
     count = 0
     print("Delete")
@@ -493,11 +503,13 @@ def compare(srcEntries: dict, dstEntries: dict, conversion:dict = None, log = Fa
 
 def logCompare(log):
     if "timestamp" in log:
-        return log["timestamp"]
+        return log["timestamp"] + str(log["_id"]).zfill(7)
     elif "date" in log:
-        return log["date"]
+        return log["date"] + str(log["idx"]).zfill(7)
+    elif "REG_DATE" in log:
+        return log["REG_DATE"] + str(log["SEQ"]).zfill(7)
     else:
-        return 0
+        return "0"
 
 
 def checkRentHistory(rentlog: list, keyMap: dict):
@@ -508,19 +520,27 @@ def checkRentHistory(rentlog: list, keyMap: dict):
     dateKey = keyMap["date"]
     retKey = keyMap["retDate"]
 
-    rentlog.sort(key=logCompare)
+    if type(rentlog) != list:
+        print("Rent history should be a list")
+        return dict()
 
     rentLogList = list()
-    for i in range(len(rentlog)):
-        logCopy = rentlog[i].copy()
-        logCopy[idxKey] = i
+    for entry in rentlog:
+        logCopy = entry.copy()
+#        logCopy[idxKey] = i
         rentLogList.append(logCopy)
+#    compare = lambda a :  a[idxKey]
+#    rentLogList.sort(key=compare)
+    rentLogList.sort(key=logCompare)
 
     numCheckout = 0
     numReturn = 0
     noReturn = dict()
+    prevIdx = 0
+    errorCount = 0
     for i in range(len(rentLogList)):
         log = rentLogList[i]
+#        print(log)
         idx = log[idxKey]
         bookId = log[bookKey]
         state = log[stateKey]
@@ -528,6 +548,14 @@ def checkRentHistory(rentlog: list, keyMap: dict):
         user = log[userKey]
 #        if bookId == 'HK10000073':
 #            print(f"{idx} Returned {rentlog[idx]} {type(state)} {log['SEQ']} ~ {log2['SEQ']}")
+        if prevIdx >= idx:
+            print(f"Index does not increase {prevIdx} >= {idx}")
+            print(logCompare(rentLogList[i-1]))
+            print(rentLogList[i-1])
+            print(logCompare(rentLogList[i]))
+            print(rentLogList[i])
+            errorCount += 1
+        prevIdx = idx
         # Skip reservation
         if state in {2, '2'}:
             continue
@@ -546,9 +574,9 @@ def checkRentHistory(rentlog: list, keyMap: dict):
                     otherRent = True
                     otherRentDate = log2[dateKey]
             if returned:
-                rentlog[idx][retKey] = log2[dateKey]
+                rentlog[i][retKey] = log2[dateKey]
             elif otherRent:
-                rentlog[idx][retKey] = otherRentDate
+                rentlog[i][retKey] = otherRentDate
             else:
                 noReturn[bookId] = user
         if state in {0, '0'}:

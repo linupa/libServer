@@ -25,7 +25,7 @@ connection = Config['connection'].format(password)
 
 global shutdown
 
-def downloadDatabase(clib, db, widgets, forced):
+def downloadDatabase(clib, db, widgets, forced, test):
     print("Download database")
 
     result = dict()
@@ -138,28 +138,71 @@ def downloadDatabase(clib, db, widgets, forced):
 
     print("Update rent histories")
 #    updateDB(list2dict(clib.rentHistory, "SEQ"), rentlog, clib, "rental_history", "SEQ", widgets["rent"].setUpdate)
-    currDb = list2dict(clib.rentHistory, "SEQ")
-    updates = compare(rentlog, currDb, False)
+    localDB = list2dict(clib.rentHistory, "SEQ")
+    cloudDB = rentlog
+    updates = compare(cloudDB, localDB, False)
     widgets["rentHistory"].setState(f"Add: {len(updates[0])} Changed: {len(updates[1])} Deleted: {len(updates[2])}")
     result["rentHistory"].update({"add": len(updates[0]), "change": len(updates[1]), "delete": len(updates[2])})
+    print("*" * 80)
+    print("Debug rent history")
+    print(type(localDB))
+    print(type(cloudDB))
     mismatch = False
     if len(updates[2]) > 0:
         mismatch = True
     for key in updates[1]:
-        src = rentlog[key]
-        dst = currDb[key]
-        if (src["SEQ"] != dst["SEQ"] or src["BOOK_CODE"] != dst["BOOK_CODE"] or
-            src["USER_CODE"] != dst["USER_CODE"]):
+        src = cloudDB[key]
+        dst = localDB[key]
+        if (src["SEQ"] != dst["SEQ"] or
+            src["BOOK_CODE"] != dst["BOOK_CODE"] or
+            src["USER_CODE"] != dst["USER_CODE"] or
+            src["REG_DATE"] != dst["REG_DATE"]):
             print("Mismatch")
             print(src)
             print(dst)
             mismatch = True
-            break
+        else:
+            if "_RETURN_DATE" not in src:
+                src["_RETURN_DATE"] = dst["_RETURN_DATE"]
     if not forced and mismatch:
+        mixed = list()
+        for key in updates[1]:
+            src = cloudDB[key]
+            dst = localDB[key]
+            if (src["SEQ"] != dst["SEQ"] or
+                src["BOOK_CODE"] != dst["BOOK_CODE"] or
+                src["USER_CODE"] != dst["USER_CODE"] or
+                src["REG_DATE"] != dst["REG_DATE"]):
+                mixed.append(dst)
+
+        for key in updates[2]:
+            mixed.append(localDB[key])
+        print("DB needed to added")
+        for entry in (mixed):
+            print(entry)
+        mixed = mixed + dict2list(cloudDB, copy = True)
+        mixed.sort(key=logCompare)
+        for i in range(len(mixed) - 1):
+            prev = mixed[i]
+            curr = mixed[i+1]
+            if curr["SEQ"] <= prev["SEQ"]:
+                curr["SEQ"] = prev["SEQ"] + 1
+
+        for i in range(len(mixed) - 1):
+            prev = mixed[i]
+            curr = mixed[i+1]
+            if curr["SEQ"] <= prev["SEQ"]:
+                print("ERROR duplicated or inverse seq")
+                print(prev)
+                print(curr)
+
+        newSrcDB = list2dict(mixed, "SEQ")
+        updates = compare(newSrcDB, localDB, False)
+
         widgets["rentHistory"].setState(f"Cannot update rent history")
         return result
 
-    updateSQL(updates, rentlog, clib, "rental_history", "SEQ", widgets["rentHistory"].setUpdate)
+    updateSQL(updates, cloudDB, clib, "rental_history", "SEQ", widgets["rentHistory"].setUpdate)
 
     print("Update rents")
 #    updateDB(clib.rents, rents, clib, "book_lent", "BARCODE", widgets["rent"].setUpdate)
@@ -168,11 +211,11 @@ def downloadDatabase(clib, db, widgets, forced):
     widgets["rent"].setState(f"Add: {len(updates[0])} Changed: {len(updates[1])} Deleted: {len(updates[2])}")
     updateSQL(updates, rents, clib, "book_lent", "BARCODE", widgets["rent"].setUpdate)
 
-    checkUnique(rentlog, "SEQ")
+    checkUnique(cloudDB, "SEQ")
 
     return result
 
-def downloadThread(window, widgets, forced):
+def downloadThread(window, widgets, forced, test):
     global shutdown
     # Read SQL
     clib = CLibrary()
@@ -184,7 +227,7 @@ def downloadThread(window, widgets, forced):
     db = client.library
     print("Check")
 
-    result = downloadDatabase(clib, db, widgets, forced)
+    result = downloadDatabase(clib, db, widgets, forced, test)
     print("Done")
 
     print("Report Server Log")
@@ -209,10 +252,12 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-f", "--force", action="store_true")
+    parser.add_argument("-t", "--test", action="store_true")
     args = parser.parse_args()
 
     forced = args.force
-    print(forced)
+    test = args.test
+    print(f"Forced {forced}, Test {test}")
 
     shutdown = False
     window = tk.Tk()
@@ -241,7 +286,7 @@ if __name__ == '__main__':
         widgets[items[i]].addUpdate(index)
         index += 2
 
-    thread = threading.Thread(target = downloadThread, args = (window, widgets, forced))
+    thread = threading.Thread(target = downloadThread, args = (window, widgets, forced, test))
     thread.start()
 
     window.after(1000, timer)

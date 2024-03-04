@@ -129,9 +129,16 @@ class MARC:
             data = encoded[fromIdx:toIdx]
             field = Field(key, data)
             self.fields.append(field)
+            if key == "005":
+                if self.debug:
+                    print(f"Timestamp: {field.data}")
+                self.timestamp = field.data
 
 
     def encode(self, changeDate = False):
+
+        timestampField = self.findField("005")
+        timestampField.data = self.timestamp
 
         fieldStr = str()
         sizes = list()
@@ -163,8 +170,11 @@ class MARC:
 
         if self.debug:
             print("Compare:")
+            print("-" * 80)
             print(marc.replace("\r", ", "))
+            print("-" * 80)
             print(self.marc.replace("\r", ", "))
+            print("-" * 80)
             print(f"Length: {length}")
             print(f"MidLength: {midLength}")
 
@@ -209,6 +219,15 @@ class MARC:
 
     def getBookInfo(self):
         info = dict()
+        y = self.timestamp[0:4]
+        m = self.timestamp[4:6]
+        d = self.timestamp[6:8]
+        H = self.timestamp[8:10]
+        M = self.timestamp[10:12]
+        S = self.timestamp[12:14]
+        timestamp = f"{y}-{m}-{d}, {H}:{M}:{S}"
+        info["MOD_DATE"] = timestamp
+
         info["BARCODE"] = self.getValue("049", "l")
         info["EX_CATE"] = self.getValue("049", "f")
         info["ISBN"] = self.getValue("020", "a")
@@ -236,6 +255,7 @@ class MARC:
     def setBookInfo(self, info):
         now = datetime.now().strftime("%Y%m%d%H%M%S")
         print(f"Update book info at {now}")
+        self.timestamp = now
 
         self.setValueHelper("020", "a", info, "ISBN")
 
