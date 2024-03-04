@@ -305,7 +305,7 @@ def encryptUserInfo(users):
             except Exception as e:
                 print("Exception while encrypting email")
 
-def convertEntryToMDB(fromDb: dict, key: str, conversion: dict):
+def convertEntryToMDB(src: dict, conversion: dict):
     converted = list()
     dst = dict()
     for srcKey in src:

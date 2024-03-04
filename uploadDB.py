@@ -37,6 +37,32 @@ def uploadDatabase(clib, db, widgets, forced, debug = False):
     users = convertToMDB(clib.users, '_id', sqlUserDict)
     rents = convertToMDB(clib.rents, '_id', sqlRentDict)
     rentlog = convertToMDB(clib.rentHistory, '_id', sqlRentHistoryDict)
+
+    matchCount = 0
+    mismatchCount = 0
+    failCount = 0
+    for key in marcs:
+        orgMarc = marcs[key]["MARC_DATA"]
+        try:
+            marc = MARC(orgMarc, debug=False)
+            marc.decode()
+            marc.check()
+            newMarc = marc.encode()
+            marcs[key]["MARC_DATA"] = newMarc
+            if bytes(orgMarc, "UTF-8") != bytes(newMarc, "UTF-8"):
+                mismatchCount += 1
+            else:
+                matchCount += 1
+            bookInfo = convertEntryToMDB(marc.getBookInfo(), sqlBookDict)
+            print(bookInfo)
+            key = bookInfo["_id"]
+            books[key].update(bookInfo)
+        except Exception as e:
+            print(f"Failed to decode MARC {e}")
+            print(orgMarc)
+            failCount += 1
+    print(f"Same {matchCount} / Change {mismatchCount} / Fail {failCount} / Total {len(marcs)}")
+
     result = dict()
     result["book"] = {"count": len(books)}
     result["marc"] = {"count": len(marcs)}
@@ -59,26 +85,6 @@ def uploadDatabase(clib, db, widgets, forced, debug = False):
     marcInfo = db.command("collstats", "marc")
     marcCount = marcInfo['count']
     print(f"MARC ({marcInfo['count']})")
-    matchCount = 0
-    mismatchCount = 0
-    failCount = 0
-    for key in marcs:
-        orgMarc = marcs[key]["MARC_DATA"]
-        try:
-            marc = MARC(orgMarc, debug=False)
-            marc.decode()
-            marc.check()
-            newMarc = marc.encode()
-            marcs[key]["MARC_DATA"] = newMarc
-            if bytes(orgMarc, "UTF-8") != bytes(newMarc, "UTF-8"):
-                mismatchCount += 1
-            else:
-                matchCount += 1
-        except Exception as e:
-            print(f"Failed to decode MARC {e}")
-            print(orgMarc)
-            failCount += 1
-    print(f"Same {matchCount} / Change {mismatchCount} / Fail {failCount} / Total {len(marcs)}")
     updates = updateMongoDB(db.marc, marcs, widgets["marc"], debug = debug)
     result["marc"].update({"add": len(updates[0]), "change": len(updates[1]), "delete": len(updates[2])})
 

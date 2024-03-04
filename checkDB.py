@@ -137,13 +137,17 @@ def checkDB(mongoDb):
     print("Compare Book and MARC")
     for key in booksFromMarc:
         marcBook = booksFromMarc[key]
+        if key not in books:
+            print(f"Book {key} does not exist ({booksFromMarc[key]})")
+            errorCount += 1
+            continue
         mdbBook = books[key]
         for entry in marcBook:
             # BOOK modification time and MARC time may not be the same
             if entry == "modification_date":
                 continue
             if entry in mdbBook and marcBook[entry].strip() != mdbBook[entry].strip():
-                print(f"Book {key} mismatch with MARC")
+                print(f"Entry {entry} in Book {key} mismatch with MARC")
                 print(mdbBook)
                 print(marcBook)
                 errorCount += 1
