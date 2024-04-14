@@ -54,7 +54,6 @@ def uploadDatabase(clib, db, widgets, forced, debug = False):
             else:
                 matchCount += 1
             bookInfo = convertEntryToMDB(marc.getBookInfo(), sqlBookDict)
-            print(bookInfo)
             key = bookInfo["_id"]
             books[key].update(bookInfo)
         except Exception as e:
