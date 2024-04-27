@@ -9,7 +9,15 @@ class CLibDB():
         else:
             dbPath = "C:\CLIB\Data\CLIB.mdf"
         drivers = pyodbc.drivers()
-        driver = drivers[-1]
+        for driver in drivers:
+            lower = driver.lower()
+            if "native client" in lower:
+                break
+        for entry in drivers:
+            if "Native Client" in entry:
+                driver = entry
+                break
+        print(f"Driver: {driver}")
         self.connection = pyodbc.connect(
             'Driver={' + driver + '};'
             'Server=(localdb)\\v11.0;'
