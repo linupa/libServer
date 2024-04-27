@@ -12,10 +12,6 @@ from tkinter import ttk
 import time
 import argparse
 
-import dns.resolver
-dns.resolver.default_resolver=dns.resolver.Resolver(configure=False)
-dns.resolver.default_resolver.nameservers=['8.8.8.8']
-
 password = Config['password']
 connection = Config['connection'].format(password)
 

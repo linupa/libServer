@@ -13,12 +13,6 @@ from keyInput import KeyInput
 from dbUtil import *
 import requests
 import socket
-import dns.resolver
-#import webbrowser
-#from ocrTest import OCRTest
-
-dns.resolver.default_resolver=dns.resolver.Resolver(configure=False)
-dns.resolver.default_resolver.nameservers=['8.8.8.8']
 
 global clib
 global mdb

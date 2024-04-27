@@ -5,10 +5,6 @@ from marc import MARC
 from authorCode import getAuthorCode
 import subprocess
 
-import dns.resolver
-dns.resolver.default_resolver=dns.resolver.Resolver(configure=False)
-dns.resolver.default_resolver.nameservers=['8.8.8.8']
-
 def checkDB(mongoDb):
     commit = subprocess.Popen(['git', 'rev-parse', 'HEAD'], stdout=subprocess.PIPE)
     out, _ = commit.communicate()

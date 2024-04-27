@@ -3,10 +3,6 @@ from config import Config
 from clibrary import CLibrary, dictToString
 from dbUtil import *
 
-import dns.resolver
-dns.resolver.default_resolver=dns.resolver.Resolver(configure=False)
-dns.resolver.default_resolver.nameservers=['8.8.8.8']
-
 password = Config['password']
 connection = Config['connection'].format(password)
 
