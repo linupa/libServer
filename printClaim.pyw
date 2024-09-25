@@ -11,7 +11,7 @@ from config import Config
 from pymongo import MongoClient
 from ClaimBuilder import ClaimBuilder
 from dbUtil import *
-from Text import text
+from text import text
 
 global sheet
 

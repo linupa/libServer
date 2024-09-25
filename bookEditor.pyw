@@ -11,7 +11,7 @@ from config import Config
 from pymongo import MongoClient
 from ClaimBuilder import ClaimBuilder
 from dbUtil import *
-from Text import text, getText
+from text import text, getText
 from marc import MARC
 
 def setText(widget, text):
@@ -31,6 +31,7 @@ class BookInfo:
         self.win = window
         self.selectedRow = 0
         self.books = dict()
+        self.bookId = list()
         self.pop = None
         self.infoText = ['Barcode', 'ISBN', 'TotalName', 'BookName', 'ExCate', 'Author', 'Category', 'Publish', 'AuthorCode', 'BookNum', 'ClaimNum', 'CopyNum', 'Claim', "Delete"]
         self.infoKey = ["_id", "isbn", "series", "title", "ex_cate", "author", "category", "publisher", "author_code", "num", "claim_num", "copy_num", "claim", "deleted"]
@@ -144,7 +145,7 @@ class BookInfo:
     def searchBook(self, keyword):
         ret = list()
         keyword = keyword.lower()
-        for key in self.books:
+        for key in self.bookId:
             book = self.books[key]
             if ( keyword in book["title"].lower() or
                  keyword in book["series"].lower() or
@@ -178,6 +179,8 @@ class BookInfo:
         try:
             print("Read books")
             self.books = mdb2dict(self.db.book)
+            self.bookId = list(self.books.keys())
+            self.bookId.sort()
             print("Read marcs")
             self.marcs = mdb2dict(self.db.marc)
         except Exception as e:

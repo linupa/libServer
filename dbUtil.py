@@ -402,6 +402,7 @@ def makeUnique(l: list, key: str = '_id'):
         isInteger = (type(id) == int)
 
         while id in d:
+            print(f"ID {id} is duplicated")
             if type(id) == int:
                 id += 100000000000
             elif type(id) == str:
@@ -512,7 +513,7 @@ def logCompare(log):
         return "0"
 
 
-def checkRentHistory(rentlog: list, keyMap: dict):
+def checkRentHistory(rentlog: list, keyMap: dict, db = None):
     idxKey = keyMap["idx"]
     bookKey = keyMap["book"]
     stateKey = keyMap["state"]
@@ -538,6 +539,7 @@ def checkRentHistory(rentlog: list, keyMap: dict):
     noReturn = dict()
     prevIdx = 0
     errorCount = 0
+    prevLog = None
     for i in range(len(rentLogList)):
         log = rentLogList[i]
 #        print(log)
@@ -555,6 +557,19 @@ def checkRentHistory(rentlog: list, keyMap: dict):
             print(logCompare(rentLogList[i]))
             print(rentLogList[i])
             errorCount += 1
+
+        if prevLog and 'timestamp' in log:
+            if (log['timestamp'] == prevLog['timestamp'] and
+                log['user_id'] == prevLog['user_id'] and
+                log['book_id'] == prevLog['book_id'] ):
+                print(f"Duplicated timestamp {log['timestamp']}")
+                print(prevLog)
+                print(log)
+                if db != None:
+                    query = {'_id': log["_id"]}
+                    print(f"Delete {query}")
+                    db.delete_one(query)
+        prevLog = log
         prevIdx = idx
         # Skip reservation
         if state in {2, '2'}:
@@ -588,6 +603,8 @@ def checkRentHistory(rentlog: list, keyMap: dict):
 
 def reportServerLog(db, action, misc = dict()):
     report = dict()
+    if not misc:
+        return
     report.update(misc)
     report["action"] = action
     api_url = "https://api.ipify.org/?format=json"

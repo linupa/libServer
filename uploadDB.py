@@ -108,7 +108,28 @@ def uploadDatabase(clib, db, widgets, forced, debug = False):
     widget = widgets["rentHistory"]
     mdbDict = mdb2dict(mdb, callback=widget.setDownload)
     updates = compare(srcDB, mdbDict, log=True)
-    result["rentHistory"].update({"add": len(updates[0]), "change": len(updates[1]), "delete": len(updates[2])})
+    historyResult = dict()
+    if len(updates[0]) > 0:
+        print("Add")
+        historyResult["add"] = list()
+    for idx in updates[0]:
+        print(srcDB[idx])
+        historyResult["add"].append(srcDB[idx])
+    if len(updates[1]) > 0:
+        print("Mod")
+        historyResult["mod"] = list()
+    for idx in updates[1]:
+        print(srcDB[idx])
+        print(mdb[idx])
+        historyResult["mod"].append((srcDB[idx], mdb[idx]))
+    if len(updates[2]) > 0:
+        print("Del")
+        historyResult["del"] = list()
+    for idx in updates[2]:
+        print(mdb[idx])
+        historyResult["del"].append(mdb[idx])
+    result["rentHistory"].update(historyResult)
+
     mismatch = False
     if len(updates[2]) > 0:
         mismatch = True
@@ -148,6 +169,7 @@ def uploadThread(window, widgets, forced, debug):
 
     result = uploadDatabase(clib, db, widgets, forced, debug = debug)
     print("Done")
+    print(result)
 
     print("Report Server Log")
     reportServerLog(db, "Upload DB", result)

@@ -138,7 +138,6 @@ def downloadDatabase(clib, db, widgets, forced, test):
     cloudDB = rentlog
     updates = compare(cloudDB, localDB, False)
     widgets["rentHistory"].setState(f"Add: {len(updates[0])} Changed: {len(updates[1])} Deleted: {len(updates[2])}")
-    result["rentHistory"].update({"add": len(updates[0]), "change": len(updates[1]), "delete": len(updates[2])})
     print("*" * 80)
     print("Debug rent history")
     print(type(localDB))
@@ -160,6 +159,30 @@ def downloadDatabase(clib, db, widgets, forced, test):
         else:
             if "_RETURN_DATE" not in src:
                 src["_RETURN_DATE"] = dst["_RETURN_DATE"]
+
+    historyResult = dict()
+    if len(updates[0]) > 0:
+        print("Add")
+        historyResult["add"] = list()
+    for idx in updates[0]:
+        print(cloudDB[idx])
+        historyResult["add"].append(cloudDB[idx])
+    if len(updates[1]) > 0:
+        print("Mod")
+        historyResult["mod"] = list()
+    for idx in updates[1]:
+        print(cloudDB[idx])
+        print(clib[idx])
+        historyResult["mod"].append((cloudDB[idx], clib[idx]))
+    if len(updates[2]) > 0:
+        print("Del")
+        historyResult["del"] = list()
+    for idx in updates[2]:
+        print(clib[idx])
+        historyResult["del"].append(clib[idx])
+
+    result["rentHistory"].update(historyResult)
+
     if not forced and mismatch:
         mixed = list()
         for key in updates[1]:

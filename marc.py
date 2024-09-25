@@ -1,4 +1,4 @@
-from Text import text
+from text import text
 from collections import OrderedDict
 from datetime import datetime
 

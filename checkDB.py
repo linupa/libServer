@@ -4,8 +4,11 @@ from dbUtil import *
 from marc import MARC
 from authorCode import getAuthorCode
 import subprocess
+from text import getText
+import datetime
+import argparse
 
-def checkDB(mongoDb):
+def checkDB(mongoDb, fix= False):
     commit = subprocess.Popen(['git', 'rev-parse', 'HEAD'], stdout=subprocess.PIPE)
     out, _ = commit.communicate()
     print("="*80)
@@ -38,6 +41,11 @@ def checkDB(mongoDb):
     print("RentLog")
     rentLogs = mdb2dict(mongoDb.rentLog)
     print(f"{len(rentLogs)} rentLogs")
+
+    print("="*80)
+    print("Request")
+    requests = mdb2dict(mongoDb.request)
+    print(f"{len(requests)} requests")
 
     numDeleted = 0
     stateHist = dict()
@@ -157,7 +165,10 @@ def checkDB(mongoDb):
     print("="*80)
     print("Check rent history")
     keyMap = {"idx": "_id", "book": "book_id", "state": "book_state", "user": "user_id", "date": "timestamp", "retDate": "return_date"}
-    noReturn = checkRentHistory(dict2list(rentLogs), keyMap)
+    if fix:
+        noReturn = checkRentHistory(dict2list(rentLogs), keyMap, db=mongoDb.rentLog)
+    else:
+        noReturn = checkRentHistory(dict2list(rentLogs), keyMap)
 
     print("="*80)
     print("Compare rent history and rent")
@@ -174,6 +185,15 @@ def checkDB(mongoDb):
             print(f"{entry} Renter {userId} is different from {rents[seqnum]['user_id']}")
             count += 1
             errorCount += 1
+    for seqnum in rents:
+        rent = rents[seqnum]
+        if rent["state"] not in {1, "1", 3, "3"}:
+            continue
+        bookId = rent['book_id']
+        if bookId not in noReturn:
+            print(f"Book {bookId} is rented, but rentLog has no checkout")
+            errorCount += 1
+
     if count > 0:
         print(f"Mismatch cound {count}")
 
@@ -183,10 +203,12 @@ def checkDB(mongoDb):
         bookId = rents[seqnum]["book_id"]
         if bookId not in books:
             print(f"{bookId} not in book DB")
+            print(rents[seqnum])
             errorCount += 1
             continue
         if seqnum != books[bookId]["seqnum"]:
             print(f"Rent {seqnum} does not match Book {bookId} seqnum {books[bookId]['seqnum']}")
+            print(rents[seqnum])
             errorCount += 1
             continue
 
@@ -240,9 +262,49 @@ def checkDB(mongoDb):
     if errorCount > 0:
         raise
 
-    return errorCount
+    print("="*80)
+    print(f"Check requests")
+    for key in requests:
+        request = requests[key]
+        print(request)
+        if request["action"] != "extend":
+            continue
+        if request["state"] != "pending":
+            continue
+        bookId = request["book_id"]
+        if bookId not in books:
+            print(f"Unknown book ID: {bookId}")
+            continue
+        seq = books[bookId]["seqnum"]
+        if seq not in rents:
+            print(f"Unknown seq number: {seq}")
+            for key in rents:
+                rent = rents[key]
+                if rent["book_id"] == bookId:
+                    print(f"Found book in {rent}")
+            continue
+        rent = rents[seq]
+        print(rent)
+        if rent["book_id"] != bookId or rent["user_id"] != request["user_id"]:
+            print(f"Rent info does not match {rent}")
+        print(f"Extend due date {rent['return_date']} for {bookId}")
+        dueDate = datetime.datetime.strptime(rent["return_date"], "%Y-%m-%d")
+        print(dueDate)
+        now = datetime.datetime.now()
+        refDate = now if now > dueDate else dueDate
+        newRetDate = timeToString(refDate + datetime.timedelta(days=21), True)
+        print(f"New due date {newRetDate}")
+
+
+    return [books, users, rents, rentLogs]
 
 if __name__ == '__main__':
+
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument('-f', '--fix', action='store_true')
+
+    args = parser.parse_args()
     # Open MongoDB
     if "GITHUB_ACTIONS" in os.environ:
         password = os.environ["MONGODB_PASSWORD"]
@@ -250,9 +312,54 @@ if __name__ == '__main__':
         from config import Config
         password = Config['password']
     connection = 'mongodb+srv://linupa:{}@hkmcclibrary.s59ur1w.mongodb.net/?retryWrites=true&w=majority'.format(password)
+    print(connection)
     client = MongoClient(connection)
     mongoDb = client.library
 
-    checkDB(mongoDb)
+    try:
+        db = checkDB(mongoDb, args.fix)
+    except:
+        print("checkDB failed")
+        exit()
+
+    books = db[0]
+    rentLogs = db[3]
+
+    rentPerYear = dict()
+    for idx in rentLogs:
+        rentLog = rentLogs[idx]
+        if rentLog['book_state'] != 1:
+            continue
+        year = rentLog['timestamp'][0:4]
+        if year not in rentPerYear:
+            rentPerYear[year] = {"kid": 0, "rel": 0, "eng": 0, "other": 0, "total": 0}
+        bookId = rentLog['book_id']
+        if bookId[0:3] == "HK0" or bookId[0:3] == "HK9":
+            rentPerYear[year]['kid'] += 1
+        elif bookId[0:3] == "HK5":
+            rentPerYear[year]['eng'] += 1
+        else:
+            book = books[bookId]
+            if book['category'][0] == '2':
+                rentPerYear[year]['rel'] += 1
+            else:
+                rentPerYear[year]['other'] += 1
+        rentPerYear[year]['total'] += 1
+
+    keys = ["kid", "rel", "eng", "other", "total"]
+
+    item = [""]
+    for k in keys:
+        item.append(getText(k))
+    print(",".join(item))
+    for year in rentPerYear:
+        item = [str(year)]
+        for key in keys:
+            item.append(str(rentPerYear[year][key]))
+        print(",".join(item))
+
+#    for i in books:
+#        print(books[i])
+#        break
 
 

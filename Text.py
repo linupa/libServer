@@ -22,5 +22,9 @@ text = {
     "claim": "청구기호",
     "regDate": "등록일",
     "claimPrinter": "청구기호 출력",
-    "kid": "아동"
+    "kid": "아동",
+    "rel": "종교",
+    "eng": "영어",
+    "other": "기타",
+    "total": "전체"
 }
