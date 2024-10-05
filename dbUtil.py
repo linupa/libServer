@@ -525,11 +525,15 @@ def checkRentHistory(rentlog: list, keyMap: dict, db = None):
         print("Rent history should be a list")
         return dict()
 
+    lastId = 0
     rentLogList = list()
     for entry in rentlog:
         logCopy = entry.copy()
 #        logCopy[idxKey] = i
         rentLogList.append(logCopy)
+        if lastId < int(logCopy[idxKey]):
+            lastId = int(logCopy[idxKey])
+    print(f"Last rentLog Id: {lastId}")
 #    compare = lambda a :  a[idxKey]
 #    rentLogList.sort(key=compare)
     rentLogList.sort(key=logCompare)
@@ -542,7 +546,6 @@ def checkRentHistory(rentlog: list, keyMap: dict, db = None):
     prevLog = None
     for i in range(len(rentLogList)):
         log = rentLogList[i]
-#        print(log)
         idx = log[idxKey]
         bookId = log[bookKey]
         state = log[stateKey]

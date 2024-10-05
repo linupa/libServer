@@ -97,6 +97,7 @@ def checkDB(mongoDb, fix= False):
     for seqnum in rents:
         if seqnum not in seqNums:
             print(f"Seq {seqnum} in rent does not exist")
+            print(rents[seqnum])
             errorCount += 1
 
 
@@ -318,8 +319,9 @@ if __name__ == '__main__':
 
     try:
         db = checkDB(mongoDb, args.fix)
-    except:
+    except Exception as e:
         print("checkDB failed")
+        print(e)
         exit()
 
     books = db[0]

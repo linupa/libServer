@@ -120,14 +120,14 @@ def uploadDatabase(clib, db, widgets, forced, debug = False):
         historyResult["mod"] = list()
     for idx in updates[1]:
         print(srcDB[idx])
-        print(mdb[idx])
-        historyResult["mod"].append((srcDB[idx], mdb[idx]))
+        print(mdbDict[idx])
+        historyResult["mod"].append((srcDB[idx], mdbDict[idx]))
     if len(updates[2]) > 0:
         print("Del")
         historyResult["del"] = list()
     for idx in updates[2]:
-        print(mdb[idx])
-        historyResult["del"].append(mdb[idx])
+        print(mdbDict[idx])
+        historyResult["del"].append(mdbDict[idx])
     result["rentHistory"].update(historyResult)
 
     mismatch = False
@@ -193,11 +193,12 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-f", "--force", action="store_true")
+    parser.add_argument("-t", "--test", action="store_true")
     parser.add_argument("-d", "--debug", action="store_true")
     args = parser.parse_args()
 
     forced = args.force
-    debug = args.debug
+    debug = args.test or args.debug
     print(f"forced: {forced} debug: {debug}")
 
     shutdown = False

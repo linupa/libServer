@@ -21,7 +21,7 @@ connection = Config['connection'].format(password)
 
 global shutdown
 
-def downloadDatabase(clib, db, widgets, forced, test):
+def downloadDatabase(clib, db, widgets, forced, test = False):
     print("Download database")
 
     result = dict()
@@ -172,14 +172,14 @@ def downloadDatabase(clib, db, widgets, forced, test):
         historyResult["mod"] = list()
     for idx in updates[1]:
         print(cloudDB[idx])
-        print(clib[idx])
-        historyResult["mod"].append((cloudDB[idx], clib[idx]))
+        print(localDB[idx])
+        historyResult["mod"].append((cloudDB[idx], localDB[idx]))
     if len(updates[2]) > 0:
         print("Del")
         historyResult["del"] = list()
     for idx in updates[2]:
-        print(clib[idx])
-        historyResult["del"].append(clib[idx])
+        print(localDB[idx])
+        historyResult["del"].append(localDB[idx])
 
     result["rentHistory"].update(historyResult)
 
@@ -272,10 +272,11 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("-f", "--force", action="store_true")
     parser.add_argument("-t", "--test", action="store_true")
+    parser.add_argument("-d", "--debug", action="store_true")
     args = parser.parse_args()
 
     forced = args.force
-    test = args.test
+    test = args.test or args.debug
     print(f"Forced {forced}, Test {test}")
 
     shutdown = False
