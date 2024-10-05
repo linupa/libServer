@@ -1,0 +1,3 @@
+[submodule "hkmccBook"]
+	path = hkmccBook
+	url = https://github.com/linupa/hkmccBook.git
