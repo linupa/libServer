@@ -218,7 +218,7 @@ def downloadDatabase(clib, db, widgets, forced, test = False):
         newSrcDB = list2dict(mixed, "SEQ")
         updates = compare(newSrcDB, localDB, False)
 
-        widgets["rentHistory"].setState(f"Cannot update rent history")
+        widgets["rentHistory"].setState(f"Cannot download rent history")
         return result
 
     updateSQL(updates, cloudDB, clib, "rental_history", "SEQ", widgets["rentHistory"].setUpdate)

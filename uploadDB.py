@@ -26,7 +26,7 @@ def updateMongoDB(mdb, srcDB, widget, log = False, debug = False):
 
     return updates
 
-def uploadDatabase(clib, db, widgets, forced, debug = False):
+def uploadDatabase(clib, db, widgets, forced, debug = False, bookOnly = False):
     print("Upload database")
     books = convertToMDB(clib.books, '_id', sqlBookDict)
     marcs = convertToMDB(clib.marcs, '_id', sqlMARCDict)
@@ -82,6 +82,9 @@ def uploadDatabase(clib, db, widgets, forced, debug = False):
     print(f"MARC ({marcInfo['count']})")
     updates = updateMongoDB(db.marc, marcs, widgets["marc"], debug = debug)
     result["marc"].update({"add": len(updates[0]), "change": len(updates[1]), "delete": len(updates[2])})
+
+    if bookOnly:
+        return result
 
     print("="*80)
     userInfo = db.command("collstats", "user")
@@ -156,7 +159,7 @@ def uploadDatabase(clib, db, widgets, forced, debug = False):
 
     return result
 
-def uploadThread(window, widgets, forced, debug):
+def uploadThread(window, widgets, forced, debug, bookOnly):
     global shutdown
     # Read SQL
     clib = CLibrary()
@@ -167,7 +170,7 @@ def uploadThread(window, widgets, forced, debug):
     client = MongoClient(connection)
     db = client.library
 
-    result = uploadDatabase(clib, db, widgets, forced, debug = debug)
+    result = uploadDatabase(clib, db, widgets, forced, debug = debug, bookOnly = bookOnly)
     print("Done")
     print(result)
 
@@ -192,6 +195,7 @@ if __name__ == '__main__':
     global shutdown
 
     parser = argparse.ArgumentParser()
+    parser.add_argument("-b", "--bookOnly", action="store_true")
     parser.add_argument("-f", "--force", action="store_true")
     parser.add_argument("-t", "--test", action="store_true")
     parser.add_argument("-d", "--debug", action="store_true")
@@ -199,7 +203,8 @@ if __name__ == '__main__':
 
     forced = args.force
     debug = args.test or args.debug
-    print(f"forced: {forced} debug: {debug}")
+    bookOnly = args.bookOnly
+    print(f"forced: {forced} debug: {debug} bookOnly: {bookOnly}")
 
     shutdown = False
     window = tk.Tk()
@@ -227,7 +232,7 @@ if __name__ == '__main__':
         widgets[items[i]].addUpdate(index)
         index += 2
 
-    thread = threading.Thread(target = uploadThread, args = (window, widgets, forced, debug))
+    thread = threading.Thread(target = uploadThread, args = (window, widgets, forced, debug, bookOnly))
     thread.start()
 
     window.after(1000, timer)
