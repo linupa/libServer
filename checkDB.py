@@ -38,9 +38,9 @@ def checkDB(mongoDb, fix= False):
     print(f"{len(rents)} rents")
 
     print("="*80)
-    print("RentLog")
-    rentLogs = mdb2dict(mongoDb.rentLog)
-    print(f"{len(rentLogs)} rentLogs")
+    print("RentHistory")
+    rentHistory = mdb2dict(mongoDb.rentHistory)
+    print(f"{len(rentHistory)} rentHistory")
 
     print("="*80)
     print("Request")
@@ -167,9 +167,9 @@ def checkDB(mongoDb, fix= False):
     print("Check rent history")
     keyMap = {"idx": "_id", "book": "book_id", "state": "book_state", "user": "user_id", "date": "timestamp", "retDate": "return_date"}
     if fix:
-        noReturn = checkRentHistory(dict2list(rentLogs), keyMap, db=mongoDb.rentLog)
+        noReturn = checkRentHistory(dict2list(rentHistory), keyMap, db=mongoDb.rentHistory)
     else:
-        noReturn = checkRentHistory(dict2list(rentLogs), keyMap)
+        noReturn = checkRentHistory(dict2list(rentHistory), keyMap)
 
     print("="*80)
     print("Compare rent history and rent")
@@ -196,7 +196,7 @@ def checkDB(mongoDb, fix= False):
             errorCount += 1
 
     if count > 0:
-        print(f"Mismatch cound {count}")
+        print(f"Mismatch count {count}")
 
     print("="*80)
     print("Compare rent and book")
@@ -297,7 +297,7 @@ def checkDB(mongoDb, fix= False):
         print(f"New due date {newRetDate}")
 
 
-    return [books, users, rents, rentLogs]
+    return [books, users, rents, rentHistory]
 
 if __name__ == '__main__':
 
@@ -325,11 +325,11 @@ if __name__ == '__main__':
         exit()
 
     books = db[0]
-    rentLogs = db[3]
+    rentHistory = db[3]
 
     rentPerYear = dict()
-    for idx in rentLogs:
-        rentLog = rentLogs[idx]
+    for idx in rentHistory:
+        rentLog = rentHistory[idx]
         if rentLog['book_state'] != 1:
             continue
         year = rentLog['timestamp'][0:4]

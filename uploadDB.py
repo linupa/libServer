@@ -121,24 +121,33 @@ def uploadDatabase(clib, db, widgets, forced, debug = False, bookOnly = False):
     print(f"History size: {len(historyMap)}")
     newHistory = dict()
     newHistoryKey = list()
+    modHistoryKey = list()
     for key in rentlog:
         log = rentlog[key]
         timestamp = log["timestamp"]
         newEntry = True
+        modEntry = True
         if timestamp in historyMap:
             for entry in historyMap[timestamp]:
                 if (entry["user_id"] == log["user_id"] and
                     entry["book_id"] == log["book_id"] and
                     entry["book_state"] == log["book_state"]):
+                    if "return_date" in entry or "return_date" not in log:
+                        modEntry = False
                     newEntry = False
                     break
         if newEntry:
             newHistory[key] = log.copy()
             del newHistory[key]["_id"]
             newHistoryKey.append(key)
-    print(f"New {len(newHistoryKey)} entries")
+        elif modEntry:
+            newHistory[key] = log.copy()
+            del newHistory[key]["_id"]
+            modHistoryKey.append(key)
 
-    updateCloud([newHistoryKey, list(), list()], newHistory, db.rentHistory)
+    print(f"New {len(newHistoryKey)} entries, {len(modHistoryKey)} entries changed")
+
+    updateCloud([newHistoryKey, modHistoryKey, list()], newHistory, db.rentHistory)
 
     mdb = db.rentLog
     srcDB = rentlog

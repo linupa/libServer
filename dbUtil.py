@@ -395,6 +395,19 @@ def checkUnique(src, key: str = '_id'):
             else:
                 ids[entry[key]] = entry['REG_DATE']
 
+def checkDuplicate(left, right):
+    for key in left:
+        if key not in right:
+            return False
+        if left[key] != right[key]:
+            return False
+
+    for key in right:
+        if key not in left:
+            return False
+
+    return True
+
 def makeUnique(l: list, key: str = '_id'):
     d = dict()
     for entry in l:
@@ -402,6 +415,9 @@ def makeUnique(l: list, key: str = '_id'):
         isInteger = (type(id) == int)
 
         while id in d:
+            if checkDuplicate(entry, d[id]):
+                print(f"Duplicate {entry}")
+                break
             print(f"ID {id} is duplicated")
             if type(id) == int:
                 id += 100000000000
@@ -442,39 +458,39 @@ def compare(srcEntries: dict, dstEntries: dict, conversion:dict = None, log = Fa
         dstFlag.add(key)
     print(len(dstFlag))
 
-#    for gsEntry in srcEntries:
-#        key = gsEntry['_id']
+#    for srcEntry in srcEntries:
+#        key = srcEntry['_id']
     for key in srcEntries:
-        gsEntry = srcEntries[key]
+        srcEntry = srcEntries[key]
         if key not in dstFlag:
             if log:
                 print("=== New entry")
-                print(gsEntry)
+                print(srcEntry)
             addedList.append(key)
             continue
-        mdEntry = dstEntries[key]
+        dstEntry = dstEntries[key]
 
         dstFlag.remove(key)
         modified = False
-        for label in gsEntry:
+        for label in srcEntry:
             if conversion:
                 if label not in conversion:
                     continue
-                mLabel = conversion[label]
+                dLabel = conversion[label]
             else:
-                mLabel = label
-            if label in ignoreTag or mLabel in ignoreTag:
+                dLabel = label
+            if label in ignoreTag or dLabel in ignoreTag:
                 continue
-            if mLabel not in mdEntry:
+            if dLabel not in dstEntry:
                 if log:
-                    print(f'Label {mLabel} is not in MongoDB')
+                    print(f'Label {dLabel} is not in target entry')
                 modified = True
-            elif gsEntry[label] != mdEntry[mLabel]:
+            elif srcEntry[label] != dstEntry[dLabel]:
 #                if log:
-#                   print(f'{key} Value for label {label}/{mLabel} is different')
-#                   print(f"{gsEntry[label]} != {mdEntry[mLabel]}")
+#                   print(f'{key} Value for label {label}/{dLabel} is different')
+#                   print(f"{srcEntry[label]} != {dstEntry[dLabel]}")
                 modified = True
-            if "return_data" in mdEntry:
+            if "return_data" in dstEntry:
                 modified = True
         if modified:
             modifiedList.append(key)
@@ -486,20 +502,28 @@ def compare(srcEntries: dict, dstEntries: dict, conversion:dict = None, log = Fa
             deletedList.append(key)
     print(f'Update Add/Mod/Del {len(addedList)} {len(modifiedList)} {len(deletedList)}')
     if len(addedList) > 0:
-        print(f"Add    {srcEntries[addedList[0]]}")
-#    for entry in addedList:
-#        print(srcEntries[entry])
-#        if log:
-#            print(addedList)
+        if not log:
+            print(f"Add    {srcEntries[addedList[0]]}")
+        else:
+            print("Add")
+            for entry in addedList:
+                print(srcEntries[entry])
     if len(modifiedList) > 0:
-        print(f"Update {srcEntries[modifiedList[0]]}")
-        print(f"       {dstEntries[modifiedList[0]]}")
-#        if log:
-#            print(modifiedList)
+        if not log:
+            print(f"Update {srcEntries[modifiedList[0]]}")
+            print(f"       {dstEntries[modifiedList[0]]}")
+        else:
+            print("Update")
+            for entry in modifiedList:
+                print(srcEntries[entry])
+                print(dstEntries[entry])
     if len(deletedList) > 0:
-        print(f"Delete {dstEntries[deletedList[0]]}")
-#        if log:
-#            print(deletedList)
+        if not log:
+            print(f"Delete {dstEntries[deletedList[0]]}")
+        else:
+            print("Delete")
+            for entry in deletedList:
+                print(dstEntries[entry])
     return [addedList, modifiedList, deletedList]
 
 def logCompare(log):
@@ -531,9 +555,10 @@ def checkRentHistory(rentlog: list, keyMap: dict, db = None):
         logCopy = entry.copy()
 #        logCopy[idxKey] = i
         rentLogList.append(logCopy)
-        if lastId < int(logCopy[idxKey]):
-            lastId = int(logCopy[idxKey])
-    print(f"Last rentLog Id: {lastId}")
+#        logId = int(logCopy[idxKey])
+#        if lastId < logId and logId < 1000000000:
+#            lastId = logId
+#    print(f"Last rentLog Id: {lastId}")
 #    compare = lambda a :  a[idxKey]
 #    rentLogList.sort(key=compare)
     rentLogList.sort(key=logCompare)
@@ -553,6 +578,7 @@ def checkRentHistory(rentlog: list, keyMap: dict, db = None):
         user = log[userKey]
 #        if bookId == 'HK10000073':
 #            print(f"{idx} Returned {rentlog[idx]} {type(state)} {log['SEQ']} ~ {log2['SEQ']}")
+        '''
         if prevIdx >= idx:
             print(f"Index does not increase {prevIdx} >= {idx}")
             print(logCompare(rentLogList[i-1]))
@@ -560,6 +586,7 @@ def checkRentHistory(rentlog: list, keyMap: dict, db = None):
             print(logCompare(rentLogList[i]))
             print(rentLogList[i])
             errorCount += 1
+        '''
 
         if prevLog and 'timestamp' in log:
             if (log['timestamp'] == prevLog['timestamp'] and
