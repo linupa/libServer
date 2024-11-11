@@ -136,7 +136,7 @@ def downloadDatabase(clib, db, widgets, forced, test = False):
 #    updateDB(list2dict(clib.rentHistory, "SEQ"), rentlog, clib, "rental_history", "SEQ", widgets["rent"].setUpdate)
     localDB = list2dict(clib.rentHistory, "SEQ")
     cloudDB = rentlog
-    updates = compare(cloudDB, localDB, False)
+    updates = compare(cloudDB, localDB, log = True)
     widgets["rentHistory"].setState(f"Add: {len(updates[0])} Changed: {len(updates[1])} Deleted: {len(updates[2])}")
     print("*" * 80)
     print("Debug rent history")
@@ -183,6 +183,7 @@ def downloadDatabase(clib, db, widgets, forced, test = False):
 
     result["rentHistory"].update(historyResult)
 
+    print("Rearrange history index")
     if not forced and mismatch:
         mixed = list()
         for key in updates[1]:
@@ -196,7 +197,7 @@ def downloadDatabase(clib, db, widgets, forced, test = False):
 
         for key in updates[2]:
             mixed.append(localDB[key])
-        print("DB needed to added")
+        print("Entry need to be added (only in local)")
         for entry in (mixed):
             print(entry)
         mixed = mixed + dict2list(cloudDB, copy = True)
@@ -219,9 +220,9 @@ def downloadDatabase(clib, db, widgets, forced, test = False):
         updates = compare(newSrcDB, localDB, False)
 
         widgets["rentHistory"].setState(f"Cannot download rent history")
-        return result
-
-    updateSQL(updates, cloudDB, clib, "rental_history", "SEQ", widgets["rentHistory"].setUpdate)
+        print("Skip downloading rent history")
+    else:
+        updateSQL(updates, cloudDB, clib, "rental_history", "SEQ", widgets["rentHistory"].setUpdate)
 
     print("Update rents")
 #    updateDB(clib.rents, rents, clib, "book_lent", "BARCODE", widgets["rent"].setUpdate)

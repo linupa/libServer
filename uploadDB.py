@@ -106,6 +106,40 @@ def uploadDatabase(clib, db, widgets, forced, debug = False, bookOnly = False):
     rentlog = list2dict(rentlog)
 #    updates = updateMongoDB(db.rentLog, rentlog, widgets["rentHistory"], log=True, debug = debug)
 #              updateMongoDB(mdb, srcDB, widget, log = False, debug = False):
+
+    print("="*80)
+    print("Upload rent history (not log)")
+    rentHistory = mdb2dict(db.rentHistory)
+    historyMap = dict()
+    for key in rentHistory:
+        entry = rentHistory[key]
+        timestamp = entry["timestamp"]
+        if timestamp in historyMap:
+            historyMap[timestamp].append(entry)
+        else:
+            historyMap[timestamp] = [entry]
+    print(f"History size: {len(historyMap)}")
+    newHistory = dict()
+    newHistoryKey = list()
+    for key in rentlog:
+        log = rentlog[key]
+        timestamp = log["timestamp"]
+        newEntry = True
+        if timestamp in historyMap:
+            for entry in historyMap[timestamp]:
+                if (entry["user_id"] == log["user_id"] and
+                    entry["book_id"] == log["book_id"] and
+                    entry["book_state"] == log["book_state"]):
+                    newEntry = False
+                    break
+        if newEntry:
+            newHistory[key] = log.copy()
+            del newHistory[key]["_id"]
+            newHistoryKey.append(key)
+    print(f"New {len(newHistoryKey)} entries")
+
+    updateCloud([newHistoryKey, list(), list()], newHistory, db.rentHistory)
+
     mdb = db.rentLog
     srcDB = rentlog
     widget = widgets["rentHistory"]
