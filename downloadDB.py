@@ -21,7 +21,7 @@ connection = Config['connection'].format(password)
 
 global shutdown
 
-def downloadDatabase(clib, db, widgets, forced, test = False):
+def downloadDatabase(clib, db, widgets, test = False):
     print("Download database")
 
     result = dict()
@@ -108,6 +108,7 @@ def downloadDatabase(clib, db, widgets, forced, test = False):
     for key in books:
         if key not in rents:
             rents[key] = {'SEQ': books[key]['SEQ'], 'BARCODE': key, 'STATS': 0, 'USERS': '', 'LENT_DATE': '', 'RETURN_DATE': '', 'RESERVE_USER': '', 'RESERVE_DATE': '', 'EXTEND_COUNT': 0, 'DELETE_YN': books[key]['DELETE_YN'], 'ATTACH': 'N', 'ATTACH_USER': ''}
+    print(f"Expanded rent ({len(rents)})")
 
     print("="*80)
     print("Update DBs")
@@ -184,6 +185,7 @@ def downloadDatabase(clib, db, widgets, forced, test = False):
     result["rentHistory"].update(historyResult)
 
     print("Rearrange history index")
+    '''
     if not forced and mismatch:
         mixed = list()
         for key in updates[1]:
@@ -222,7 +224,8 @@ def downloadDatabase(clib, db, widgets, forced, test = False):
         widgets["rentHistory"].setState(f"Cannot download rent history")
         print("Skip downloading rent history")
     else:
-        updateSQL(updates, cloudDB, clib, "rental_history", "SEQ", widgets["rentHistory"].setUpdate)
+    '''
+    updateSQL(updates, cloudDB, clib, "rental_history", "SEQ", widgets["rentHistory"].setUpdate)
 
     print("Update rents")
 #    updateDB(clib.rents, rents, clib, "book_lent", "BARCODE", widgets["rent"].setUpdate)
@@ -235,7 +238,7 @@ def downloadDatabase(clib, db, widgets, forced, test = False):
 
     return result
 
-def downloadThread(window, widgets, forced, test):
+def downloadThread(window, widgets, test):
     global shutdown
     # Read SQL
     clib = CLibrary()
@@ -247,7 +250,7 @@ def downloadThread(window, widgets, forced, test):
     db = client.library
     print("Check")
 
-    result = downloadDatabase(clib, db, widgets, forced, test)
+    result = downloadDatabase(clib, db, widgets, test)
     print("Done")
 
     print("Report Server Log")
@@ -271,14 +274,12 @@ if __name__ == '__main__':
     global shutdown
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("-f", "--force", action="store_true")
     parser.add_argument("-t", "--test", action="store_true")
     parser.add_argument("-d", "--debug", action="store_true")
     args = parser.parse_args()
 
-    forced = args.force
     test = args.test or args.debug
-    print(f"Forced {forced}, Test {test}")
+    print(f"Test {test}")
 
     shutdown = False
     window = tk.Tk()
@@ -307,7 +308,7 @@ if __name__ == '__main__':
         widgets[items[i]].addUpdate(index)
         index += 2
 
-    thread = threading.Thread(target = downloadThread, args = (window, widgets, forced, test))
+    thread = threading.Thread(target = downloadThread, args = (window, widgets, test))
     thread.start()
 
     window.after(1000, timer)

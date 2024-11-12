@@ -26,7 +26,7 @@ def updateMongoDB(mdb, srcDB, widget, log = False, debug = False):
 
     return updates
 
-def uploadDatabase(clib, db, widgets, forced, debug = False, bookOnly = False):
+def uploadDatabase(clib, db, widgets, debug = False, bookOnly = False):
     print("Upload database")
     books = convertToMDB(clib.books, '_id', sqlBookDict)
     marcs = convertToMDB(clib.marcs, '_id', sqlMARCDict)
@@ -190,8 +190,8 @@ def uploadDatabase(clib, db, widgets, forced, debug = False, bookOnly = False):
             mismatch = True
             break
     widget.setState(f"Add: {len(updates[0])} Changed: {len(updates[1])} Deleted: {len(updates[2])}")
-    if (forced or not mismatch) and not debug:
-        updateCloud(updates, srcDB, mdb, callback=widget.setUpdate)
+#    if (forced or not mismatch) and not debug:
+    updateCloud(updates, srcDB, mdb, callback=widget.setUpdate)
 
     print("="*80)
     rentInfo = db.command("collstats", "rent")
@@ -202,7 +202,7 @@ def uploadDatabase(clib, db, widgets, forced, debug = False, bookOnly = False):
 
     return result
 
-def uploadThread(window, widgets, forced, debug, bookOnly):
+def uploadThread(window, widgets, debug, bookOnly):
     global shutdown
     # Read SQL
     clib = CLibrary()
@@ -213,7 +213,7 @@ def uploadThread(window, widgets, forced, debug, bookOnly):
     client = MongoClient(connection)
     db = client.library
 
-    result = uploadDatabase(clib, db, widgets, forced, debug = debug, bookOnly = bookOnly)
+    result = uploadDatabase(clib, db, widgets, debug = debug, bookOnly = bookOnly)
     print("Done")
     print(result)
 
@@ -239,15 +239,13 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-b", "--bookOnly", action="store_true")
-    parser.add_argument("-f", "--force", action="store_true")
     parser.add_argument("-t", "--test", action="store_true")
     parser.add_argument("-d", "--debug", action="store_true")
     args = parser.parse_args()
 
-    forced = args.force
     debug = args.test or args.debug
     bookOnly = args.bookOnly
-    print(f"forced: {forced} debug: {debug} bookOnly: {bookOnly}")
+    print(f"debug: {debug} bookOnly: {bookOnly}")
 
     shutdown = False
     window = tk.Tk()
@@ -275,7 +273,7 @@ if __name__ == '__main__':
         widgets[items[i]].addUpdate(index)
         index += 2
 
-    thread = threading.Thread(target = uploadThread, args = (window, widgets, forced, debug, bookOnly))
+    thread = threading.Thread(target = uploadThread, args = (window, widgets, debug, bookOnly))
     thread.start()
 
     window.after(1000, timer)

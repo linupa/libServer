@@ -28,8 +28,8 @@ class CLibDB():
         self.connection.setencoding(encoding='utf-16le', ctype=pyodbc.SQL_WCHAR)
 
         cursor = self.connection.cursor()
-#        for row in cursor.tables():
-#            print(row.table_name)
+        for row in cursor.tables():
+            print(row.table_name)
 
     def RunQuery(self, query):
         cursor = self.connection.cursor()

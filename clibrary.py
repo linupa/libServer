@@ -41,7 +41,7 @@ RENT_PERIOD = 22
 class CLibrary:
     def __init__(self):
         self.db = CLibDB()
-        tables = ('BOOK', 'BOOK_LENT', 'RENTAL_HISTORY', 'USERS', 'MARC', 'MARC_TAG'  )
+        tables = ('BOOK', 'BOOK_LENT', 'RENTAL_HISTORY', 'USERS', 'MARC', 'MARC_TAG', 'USER_LEVEL', 'CODE', 'CODE_SUB' )
 
         self.labels = dict()
         data = dict()
@@ -112,6 +112,12 @@ class CLibrary:
         print(f"{len(self.rents)} rents")
 
         self.rentHistory = data['RENTAL_HISTORY'].copy()
+
+        print(data['USER_LEVEL'])
+        print(data['CODE'])
+        for entry in data['CODE_SUB']:
+            print(entry)
+#            print(data['CODE_SUB'][key])
 
         self.rentHistory.sort(key=lambda e : logKey(e,"REG_DATE"))
 
