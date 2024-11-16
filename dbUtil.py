@@ -526,18 +526,35 @@ def compare(srcEntries: dict, dstEntries: dict, conversion:dict = None, log = Fa
                 print(dstEntries[entry])
     return [addedList, modifiedList, deletedList]
 
+def logCompareWithID(log):
+    if '_id' in log and type(log['_id']) == int:
+        idx = str(log['_id']).zfill(10)
+    elif 'SEQ' in log and type(log['SEQ']) == int:
+        idx = str(log['SEQ']).zfill(10)
+    else:
+        idx = "0" * 10
+
+    if "timestamp" in log:
+        return log["timestamp"] + idx + str(log["book_id"]).zfill(20)
+    elif "date" in log:
+        return log["date"] + idx + str(log["book_id"]).zfill(20)
+    elif "REG_DATE" in log:
+        return log["REG_DATE"] + idx + str(log["BOOK_CODE"]).zfill(20)
+    else:
+        return "0"
+
 def logCompare(log):
     if "timestamp" in log:
-        return log["timestamp"] + str(log["_id"]).zfill(7)
+        return log["timestamp"] + str(log["book_id"]).zfill(20)
     elif "date" in log:
-        return log["date"] + str(log["idx"]).zfill(7)
+        return log["date"] + str(log["book_id"]).zfill(20)
     elif "REG_DATE" in log:
-        return log["REG_DATE"] + str(log["SEQ"]).zfill(7)
+        return log["REG_DATE"] + str(log["BOOK_CODE"]).zfill(20)
     else:
         return "0"
 
 
-def checkRentHistory(rentlog: list, keyMap: dict, db = None):
+def checkRentHistory(rentlog: list, keyMap: dict, db = None, checkId = True):
     idxKey = keyMap["idx"]
     bookKey = keyMap["book"]
     stateKey = keyMap["state"]
@@ -561,7 +578,10 @@ def checkRentHistory(rentlog: list, keyMap: dict, db = None):
 #    print(f"Last rentLog Id: {lastId}")
 #    compare = lambda a :  a[idxKey]
 #    rentLogList.sort(key=compare)
-    rentLogList.sort(key=logCompare)
+    if checkId:
+        rentLogList.sort(key=logCompareWithID)
+    else:
+        rentLogList.sort(key=logCompare)
 
     numCheckout = 0
     numReturn = 0
@@ -578,15 +598,13 @@ def checkRentHistory(rentlog: list, keyMap: dict, db = None):
         user = log[userKey]
 #        if bookId == 'HK10000073':
 #            print(f"{idx} Returned {rentlog[idx]} {type(state)} {log['SEQ']} ~ {log2['SEQ']}")
-        '''
-        if prevIdx >= idx:
+        if checkId and prevIdx >= idx:
             print(f"Index does not increase {prevIdx} >= {idx}")
-            print(logCompare(rentLogList[i-1]))
+#            print(logCompare(rentLogList[i-1]))
             print(rentLogList[i-1])
-            print(logCompare(rentLogList[i]))
+#            print(logCompare(rentLogList[i]))
             print(rentLogList[i])
             errorCount += 1
-        '''
 
         if prevLog and 'timestamp' in log:
             if (log['timestamp'] == prevLog['timestamp'] and

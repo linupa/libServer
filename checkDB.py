@@ -8,6 +8,22 @@ from text import getText
 import datetime
 import argparse
 
+def checkDuplicate(logs):
+    lastEntity = None
+    delEntity = list()
+    for log in logs:
+
+        if (lastEntity and log['timestamp'] == lastEntity['timestamp'] and
+            log['user_id'] == lastEntity['user_id'] and
+            log['book_id'] == lastEntity['book_id']):
+            print(f"Duplicate entry {log}")
+            print(f"                {lastEntity}")
+            delEntity.append(log)
+        else:
+            lastEntity = log.copy()
+    for entity in delEntity:
+        logs.remove(entity)
+
 def checkDB(mongoDb, fix= False):
     commit = subprocess.Popen(['git', 'rev-parse', 'HEAD'], stdout=subprocess.PIPE)
     out, _ = commit.communicate()
@@ -41,6 +57,11 @@ def checkDB(mongoDb, fix= False):
     print("RentHistory")
     rentHistory = mdb2dict(mongoDb.rentHistory)
     print(f"{len(rentHistory)} rentHistory")
+
+    print("="*80)
+    print("RentLog")
+    rentLog = mdb2dict(mongoDb.rentLog)
+    print(f"{len(rentLog)} rentLog")
 
     print("="*80)
     print("Request")
@@ -167,9 +188,9 @@ def checkDB(mongoDb, fix= False):
     print("Check rent history")
     keyMap = {"idx": "_id", "book": "book_id", "state": "book_state", "user": "user_id", "date": "timestamp", "retDate": "return_date"}
     if fix:
-        noReturn = checkRentHistory(dict2list(rentHistory), keyMap, db=mongoDb.rentHistory)
+        noReturn = checkRentHistory(dict2list(rentHistory), keyMap, db=mongoDb.rentHistory, checkId = False)
     else:
-        noReturn = checkRentHistory(dict2list(rentHistory), keyMap)
+        noReturn = checkRentHistory(dict2list(rentHistory), keyMap, checkId = False)
 
     print("="*80)
     print("Compare rent history and rent")
@@ -253,6 +274,86 @@ def checkDB(mongoDb, fix= False):
         if userId not in overdueUsers:
             print(f"{userId} is overdue but not in rent")
             errorCount += 1
+
+    print("="*80)
+    print("Compare rent history and rent log")
+    rentHistoryList = dict2list(rentHistory)
+    rentLogList = dict2list(rentLog)
+
+    rentHistoryList.sort(key=logCompare)
+    rentLogList.sort(key=logCompare)
+
+    lastLogIdx = 0
+    for log in rentLogList:
+        if lastLogIdx < log['_id']:
+            lastLogIdx = log['_id']
+    print(f"Last log idx: {lastLogIdx}")
+
+    print("Check RentHistory")
+    checkDuplicate(rentHistoryList)
+    checkRentHistory(rentHistoryList, keyMap, checkId = False)
+    print("Check RentLog")
+    checkDuplicate(rentLogList)
+    rentLogList.sort(key=logCompareWithID)
+    checkRentHistory(rentLogList, keyMap, checkId = True)
+    rentLogList.sort(key=logCompare)
+
+    idx1 = 0
+    idx2 = 0
+    newLogIdx = lastLogIdx + 1
+    while idx1 < len(rentHistoryList) and idx2 < len(rentLogList):
+        rent1 = rentHistoryList[idx1]
+        rent2 = rentLogList[idx2]
+        logKey = rent2['_id']
+        if rent1['timestamp'] == rent2['timestamp']:
+            idx1 += 1
+            idx2 += 1
+            continue
+        elif rent1['timestamp'] > rent2['timestamp']:
+            print(f"Timestamp mismatch (rentLog has more)")
+            print(rent2)
+            if fix:
+                newEntry = rent2.copy()
+                del newEntry['_id']
+                rentHistoryList.append(newEntry)
+                print(f"Append {newEntry}")
+            idx2 += 1
+        else:
+            print(f"Timestamp mismatch (rentHistory has more)")
+            print(rent1)
+            if fix:
+                newEntry = rent1.copy()
+                newEntry['_id'] = newLogIdx
+                rentLogList.append(newEntry)
+                print(f"Append {newEntry}")
+                newLogIdx += 1
+            idx1 += 1
+
+    if fix:
+        print("Compare log histories again")
+        rentHistoryList.sort(key=logCompare)
+        rentLogList.sort(key=logCompare)
+        idx1 = 0
+        idx2 = 0
+        newLogIdx = lastLogIdx + 1
+        while idx1 < len(rentHistoryList) and idx2 < len(rentLogList):
+            rent1 = rentHistoryList[idx1]
+            rent2 = rentLogList[idx2]
+            logKey = rent2['_id']
+            if rent1['timestamp'] == rent2['timestamp']:
+                idx1 += 1
+                idx2 += 1
+                continue
+            elif rent1['timestamp'] > rent2['timestamp']:
+                print(f"Timestamp mismatch (rentLog has more)")
+                print(rent2)
+                idx2 += 1
+            else:
+                print(f"Timestamp mismatch (rentHistory has more)")
+                print(rent1)
+                idx1 += 1
+        checkRentHistory(rentLogList, keyMap, checkId = True)
+
 
     print("="*80)
     print(f"Avaiable {numAvail} / Valld {numValid} / All {len(books)} / Deleted {numDeleted}")
