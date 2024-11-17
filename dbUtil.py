@@ -259,6 +259,8 @@ def updateCloud(updates, srcEntries, dstEntries, callback = None):
     count = 0
     print("Update")
     for key in updates[1]:
+        if type(key) != int:
+            key = str(key)
         query = {'_id': key}
         newValue = {"$set":dict()}
         for label in srcEntries[key]:
@@ -553,6 +555,28 @@ def logCompare(log):
     else:
         return "0"
 
+def renumberRentHistory(rentLog):
+    ret = list()
+    if len(rentLog) == 0:
+        return ret
+
+    if '_id' not in rentLog[0] or type(rentLog[0]['_id']) != int:
+        print(f"Rent history has no ID or invalid ID")
+        return rentLog
+    ids = list()
+    for log in rentLog:
+        ids.append(log['_id'])
+        ret.append(log.copy())
+
+    ids.sort()
+    rentLog.sort(key=logCompareWithID)
+    mismatchCount = 0
+    for idx in range(len(ids)):
+        if ids[idx] != ret[idx]['_id']:
+            ret[idx]['_id'] = ids[idx]
+            mismatchCount += 1
+    print(f"{mismatchCount} logs were renumbered")
+    return ret
 
 def checkRentHistory(rentlog: list, keyMap: dict, db = None, checkId = True):
     idxKey = keyMap["idx"]
@@ -589,6 +613,7 @@ def checkRentHistory(rentlog: list, keyMap: dict, db = None, checkId = True):
     prevIdx = 0
     errorCount = 0
     prevLog = None
+    maxId = 0
     for i in range(len(rentLogList)):
         log = rentLogList[i]
         idx = log[idxKey]
@@ -598,6 +623,8 @@ def checkRentHistory(rentlog: list, keyMap: dict, db = None, checkId = True):
         user = log[userKey]
 #        if bookId == 'HK10000073':
 #            print(f"{idx} Returned {rentlog[idx]} {type(state)} {log['SEQ']} ~ {log2['SEQ']}")
+        if checkId and idx > maxId:
+            maxId = idx
         if checkId and prevIdx >= idx:
             print(f"Index does not increase {prevIdx} >= {idx}")
 #            print(logCompare(rentLogList[i-1]))
@@ -646,6 +673,8 @@ def checkRentHistory(rentlog: list, keyMap: dict, db = None, checkId = True):
             numReturn += 1
 #        if log['SEQ'] == 352:
 #            print(f"{idx} Returned {rentlog[idx]} {type(state)} {log['SEQ']} ~ {log2['SEQ']}")
+    if checkId:
+        print(f"Max ID: {maxId}")
     print(f"Checkout: {numCheckout}, Return: {numReturn}, NoReturn: {len(noReturn)}")
     return noReturn
 

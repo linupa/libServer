@@ -354,6 +354,20 @@ def checkDB(mongoDb, fix= False):
                 idx1 += 1
         checkRentHistory(rentLogList, keyMap, checkId = True)
 
+        print("Rearrange log ids")
+        rentLogList = renumberRentHistory(rentLogList)
+
+        print("Check rent history again")
+        checkRentHistory(rentLogList, keyMap, checkId = True)
+
+        rentLog = list2dict(rentLogList)
+        updates = compare(rentLog, mdb2dict(mongoDb.rentLog))
+        updateCloud(updates, rentLog, mongoDb.rentLog)
+        rentHistory = list2dict(rentHistoryList)
+        updates = compare(rentHistory, mdb2dict(mongoDb.rentHistory))
+        updates[1] = list()
+        updates[2] = list()
+        updateCloud(updates, rentLog, mongoDb.rentHistory)
 
     print("="*80)
     print(f"Avaiable {numAvail} / Valld {numValid} / All {len(books)} / Deleted {numDeleted}")

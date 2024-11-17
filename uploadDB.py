@@ -147,7 +147,9 @@ def uploadDatabase(clib, db, widgets, debug = False, bookOnly = False):
 
     print(f"New {len(newHistoryKey)} entries, {len(modHistoryKey)} entries changed")
 
-    updateCloud([newHistoryKey, modHistoryKey, list()], newHistory, db.rentHistory)
+    # Modification may not work. Check later
+#    updateCloud([newHistoryKey, modHistoryKey, list()], newHistory, db.rentHistory)
+    updateCloud([newHistoryKey, list(), list()], newHistory, db.rentHistory)
 
     mdb = db.rentLog
     srcDB = rentlog
