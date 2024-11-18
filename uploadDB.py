@@ -149,7 +149,7 @@ def uploadDatabase(clib, db, widgets, debug = False, bookOnly = False):
 
     # Modification may not work. Check later
 #    updateCloud([newHistoryKey, modHistoryKey, list()], newHistory, db.rentHistory)
-    updateCloud([newHistoryKey, list(), list()], newHistory, db.rentHistory)
+    updateCloud2([newHistory, list(), list()], db.rentHistory)
 
     mdb = db.rentLog
     srcDB = rentlog

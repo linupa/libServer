@@ -4,6 +4,7 @@ import base64
 import rsa
 import requests
 import subprocess
+from bson.objectid import ObjectId
 
 sqlBookDict = {
     'SEQ': 'seqnum',
@@ -131,6 +132,8 @@ def mdb2list(srcList: list, key = '_id'):
 def list2dict(srcList: list, key = '_id', copy = False):
     dstDict = dict()
     for src in srcList:
+        if key not in src:
+            print(f"Cannot find key {key} from {src}")
         keyValue = src[key]
         if copy:
             dstDict[keyValue] = src.copy()
@@ -234,22 +237,76 @@ def updateCloud(updates, srcEntries, dstEntries, callback = None):
 
 #    return
 
-    print("Add")
+    if len(updates[0]) > 0:
+        print("Add")
+        adds = updates[0].copy()
+        while len(adds) > 0:
+            newEntries = list()
+            while len(newEntries) < 100 and len(adds) > 0:
+                key = adds.pop(0)
+                newEntries.append(srcEntries[key])
+            if len(newEntries) > 0:
+                print(f"\rRemaining {len(adds)}", end="", flush=True)
+                dstEntries.insert_many(newEntries)
+        print("")
+
+    count = 0
+    if len(updates[2]) > 0:
+        print("Delete")
+        for key in updates[2]:
+            query = {'_id': key}
+            dstEntries.delete_one(query)
+            if (count%100) == 0:
+                print(f"\rProgress {count}", end="", flush=True)
+            count +=1
+        print("")
+
+    count = 0
+    if len(updates[1]) > 0:
+        print("Update")
+        for key in updates[1]:
+    #        if type(key) != int:
+    #            key = str(key)
+            query = {'_id': key}
+            newValue = {"$set":dict()}
+            for label in srcEntries[key]:
+                newValue["$set"][label] = srcEntries[key][label]
+            dstEntries.update_one(query, newValue)
+            if (count%100) == 0:
+                print(f"\rProgress {count}", end="", flush=True)
+    #        print(newValue)
+            count +=1
+        print("")
+
+    if callback:
+        callback(100)
+
+def updateCloud2(updates, dstEntries, callback = None):
+    totalCount = len(updates[0]) + len(updates[1]) + len(updates[2])
+    if totalCount == 0:
+        totalCount = 1
+    count = 0
+
+#    return
+
+    if len(updates[0]) > 0:
+        print("Add")
     adds = updates[0].copy()
     while len(adds) > 0:
         newEntries = list()
         while len(newEntries) < 100 and len(adds) > 0:
-            key = adds.pop(0)
-            newEntries.append(srcEntries[key])
+            entry = adds.pop(0)
+            newEntries.append(entry)
         if len(newEntries) > 0:
             print(f"\rRemaining {len(adds)}", end="", flush=True)
             dstEntries.insert_many(newEntries)
     print("")
 
     count = 0
-    print("Delete")
-    for key in updates[2]:
-        query = {'_id': key}
+    if len(updates[2]) > 0:
+        print("Delete")
+    for entry in updates[2]:
+        query = {'_id': entry['_id']}
         dstEntries.delete_one(query)
         if (count%100) == 0:
             print(f"\rProgress {count}", end="", flush=True)
@@ -257,14 +314,15 @@ def updateCloud(updates, srcEntries, dstEntries, callback = None):
     print("")
 
     count = 0
-    print("Update")
-    for key in updates[1]:
+    if len(updates[1]) > 0:
+        print("Update")
+    for entry in updates[1]:
+        query = {'_id': key}
         if type(key) != int:
             key = str(key)
-        query = {'_id': key}
         newValue = {"$set":dict()}
-        for label in srcEntries[key]:
-            newValue["$set"][label] = srcEntries[key][label]
+        for label in entry:
+            newValue["$set"][label] = entry[label]
         dstEntries.update_one(query, newValue)
         if (count%100) == 0:
             print(f"\rProgress {count}", end="", flush=True)

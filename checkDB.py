@@ -301,6 +301,7 @@ def checkDB(mongoDb, fix= False):
     idx1 = 0
     idx2 = 0
     newLogIdx = lastLogIdx + 1
+    newRentHistory = list()
     while idx1 < len(rentHistoryList) and idx2 < len(rentLogList):
         rent1 = rentHistoryList[idx1]
         rent2 = rentLogList[idx2]
@@ -315,8 +316,8 @@ def checkDB(mongoDb, fix= False):
             if fix:
                 newEntry = rent2.copy()
                 del newEntry['_id']
-                rentHistoryList.append(newEntry)
-                print(f"Append {newEntry}")
+                newRentHistory.append(newEntry)
+                print(f"Append {newEntry} to rent history")
             idx2 += 1
         else:
             print(f"Timestamp mismatch (rentHistory has more)")
@@ -325,7 +326,7 @@ def checkDB(mongoDb, fix= False):
                 newEntry = rent1.copy()
                 newEntry['_id'] = newLogIdx
                 rentLogList.append(newEntry)
-                print(f"Append {newEntry}")
+                print(f"Append {newEntry} to rent log")
                 newLogIdx += 1
             idx1 += 1
 
@@ -360,14 +361,23 @@ def checkDB(mongoDb, fix= False):
         print("Check rent history again")
         checkRentHistory(rentLogList, keyMap, checkId = True)
 
+        print("Update rent log")
         rentLog = list2dict(rentLogList)
         updates = compare(rentLog, mdb2dict(mongoDb.rentLog))
         updateCloud(updates, rentLog, mongoDb.rentLog)
+
+        print("Update rent hitory")
         rentHistory = list2dict(rentHistoryList)
-        updates = compare(rentHistory, mdb2dict(mongoDb.rentHistory))
-        updates[1] = list()
-        updates[2] = list()
-        updateCloud(updates, rentLog, mongoDb.rentHistory)
+        if 24530 in rentHistory:
+            print(f"From {rentHistory[24530]}")
+        orgDb = mdb2dict(mongoDb.rentHistory)
+        if 24530 in orgDb:
+            print(f"To {orgDb[24530]}")
+        updates = compare(rentHistory, mdb2dict(mongoDb.rentHistory), log = True)
+#        updates[1] = list()
+#        updates[2] = list()
+        updateCloud(updates, rentHistory, mongoDb.rentHistory)
+        updateCloud2([newRentHistory, list(), list()], mongoDb.rentHistory)
 
     print("="*80)
     print(f"Avaiable {numAvail} / Valld {numValid} / All {len(books)} / Deleted {numDeleted}")
