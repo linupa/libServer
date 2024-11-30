@@ -119,7 +119,8 @@ def uploadDatabase(clib, db, widgets, debug = False, bookOnly = False):
         else:
             historyMap[timestamp] = [entry]
     print(f"History size: {len(historyMap)}")
-    newHistory = dict()
+    newHistory = list()
+    modHistory = list()
     newHistoryKey = list()
     modHistoryKey = list()
     for key in rentlog:
@@ -133,23 +134,23 @@ def uploadDatabase(clib, db, widgets, debug = False, bookOnly = False):
                     entry["book_id"] == log["book_id"] and
                     entry["book_state"] == log["book_state"]):
                     if "return_date" in entry or "return_date" not in log:
+                        historyKey = entry["_id"]
                         modEntry = False
                     newEntry = False
                     break
+        copiedLog = log.copy()
+        del copiedLog["_id"]
         if newEntry:
-            newHistory[key] = log.copy()
-            del newHistory[key]["_id"]
+            newHistory.append(copiedLog)
             newHistoryKey.append(key)
         elif modEntry:
-            newHistory[key] = log.copy()
-            del newHistory[key]["_id"]
+            copiedLog["_id"] = historyKey
+            modHistory.append(copiedLog)
             modHistoryKey.append(key)
 
     print(f"New {len(newHistoryKey)} entries, {len(modHistoryKey)} entries changed")
 
-    # Modification may not work. Check later
-#    updateCloud([newHistoryKey, modHistoryKey, list()], newHistory, db.rentHistory)
-    updateCloud2([newHistory, list(), list()], db.rentHistory)
+    updateCloud2([newHistory, modHistory, list()], db.rentHistory)
 
     mdb = db.rentLog
     srcDB = rentlog

@@ -283,11 +283,7 @@ def updateCloud(updates, srcEntries, dstEntries, callback = None):
 
 def updateCloud2(updates, dstEntries, callback = None):
     totalCount = len(updates[0]) + len(updates[1]) + len(updates[2])
-    if totalCount == 0:
-        totalCount = 1
     count = 0
-
-#    return
 
     if len(updates[0]) > 0:
         print("Add")
@@ -317,16 +313,13 @@ def updateCloud2(updates, dstEntries, callback = None):
     if len(updates[1]) > 0:
         print("Update")
     for entry in updates[1]:
-        query = {'_id': key}
-        if type(key) != int:
-            key = str(key)
+        query = {'_id': entry["_id"]}
         newValue = {"$set":dict()}
         for label in entry:
             newValue["$set"][label] = entry[label]
         dstEntries.update_one(query, newValue)
         if (count%100) == 0:
             print(f"\rProgress {count}", end="", flush=True)
-#        print(newValue)
         count +=1
     print("")
 
@@ -437,13 +430,17 @@ def convertToSQL(mdb, key, revConv: dict, callback = None, interval = 100):
 
 def checkUnique(src, key: str = '_id'):
     ids = dict()
+    dup = set()
     if type(src) == list:
         for entry in src:
             keyValue = entry[key]
             if keyValue in ids:
-                print(f"Duplicated ID {keyValue} {ids[keyValue]}->{entry['REG_DATE']}")
+                print(f"Duplicated ID {keyValue} {ids[keyValue]['REG_DATE']}->{entry['REG_DATE']}")
+                print(entry)
+                print(ids[keyValue])
+                dup.add(keyValue)
             else:
-                ids[entry[key]] = entry['REG_DATE']
+                ids[entry[key]] = entry
 #            if entry[key] >= 6693 and entry[key] <= 6701:
 #                print(entry)
     elif type(src) == dict:
@@ -451,9 +448,11 @@ def checkUnique(src, key: str = '_id'):
             entry = src[srcKey]
             keyValue = entry[key]
             if keyValue in ids:
-                print(f"Duplicated ID {keyValue} {ids[keyValue]} {entry['REG_DATE']}")
+                print(f"Duplicated ID {keyValue} {ids[keyValue]['REG_DATE']} {entry['REG_DATE']}")
             else:
-                ids[entry[key]] = entry['REG_DATE']
+                ids[entry[key]] = entry
+            dup.add(keyValue)
+    return dup
 
 def checkDuplicate(left, right):
     for key in left:
