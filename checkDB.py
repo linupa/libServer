@@ -289,9 +289,11 @@ def checkDB(mongoDb, fix= False):
             lastLogIdx = log['_id']
     print(f"Last log idx: {lastLogIdx}")
 
+    print("=" * 80)
     print("Check RentHistory")
     checkDuplicate(rentHistoryList)
     checkRentHistory(rentHistoryList, keyMap, checkId = False)
+    print("=" * 80)
     print("Check RentLog")
     checkDuplicate(rentLogList)
     rentLogList.sort(key=logCompareWithID)
@@ -355,12 +357,15 @@ def checkDB(mongoDb, fix= False):
                 idx1 += 1
         checkRentHistory(rentLogList, keyMap, checkId = True)
 
+        print("=" * 80)
         print("Rearrange log ids")
         rentLogList = renumberRentHistory(rentLogList)
 
+        print("=" * 80)
         print("Check rent history again")
         checkRentHistory(rentLogList, keyMap, checkId = True)
 
+        print("=" * 80)
         print("Update rent log")
         rentLog = list2dict(rentLogList)
         updates = compare(rentLog, mdb2dict(mongoDb.rentLog))

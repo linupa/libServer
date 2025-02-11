@@ -671,6 +671,7 @@ def checkRentHistory(rentlog: list, keyMap: dict, db = None, checkId = True):
     errorCount = 0
     prevLog = None
     maxId = 0
+    bookLog = dict()
     for i in range(len(rentLogList)):
         log = rentLogList[i]
         idx = log[idxKey]
@@ -689,6 +690,12 @@ def checkRentHistory(rentlog: list, keyMap: dict, db = None, checkId = True):
 #            print(logCompare(rentLogList[i]))
             print(rentLogList[i])
             errorCount += 1
+
+        key = log[bookKey]
+        if key in bookLog:
+            bookLog[key].append(log)
+        else:
+            bookLog[key] = [log]
 
         if prevLog and 'timestamp' in log:
             if (log['timestamp'] == prevLog['timestamp'] and
@@ -730,6 +737,25 @@ def checkRentHistory(rentlog: list, keyMap: dict, db = None, checkId = True):
             numReturn += 1
 #        if log['SEQ'] == 352:
 #            print(f"{idx} Returned {rentlog[idx]} {type(state)} {log['SEQ']} ~ {log2['SEQ']}")
+
+    print(f"{len(bookLog)} books have been rented")
+    for key in bookLog:
+        logs = bookLog[key]
+        rented = None
+        for log in logs:
+            state = log[stateKey]
+            if state not in {0, 1, 4}:
+                continue
+            if rented and state in {1, 4}:
+                print(f"Log {log}: rented but rent again")
+            if not rented and state == 0:
+                print(f"Log {log}: not rented but returned")
+            if checkId and rented and rented[stateKey] == 1 and state == 0:
+                if "return_date" not in rented:
+                    print(f"Book {key} was returned but has no return data")
+                    print(rented)
+                    print(log)
+            rented = log if state in {1, 4} else None
     if checkId:
         print(f"Max ID: {maxId}")
     print(f"Checkout: {numCheckout}, Return: {numReturn}, NoReturn: {len(noReturn)}")

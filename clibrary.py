@@ -264,7 +264,7 @@ class CLibrary:
 
         keyMap = {"idx": "SEQ", "book": "BOOK_CODE", "state": "BOOK_STATE", "user": "USER_CODE", "date": "REG_DATE", "retDate": "_RETURN_DATE"}
 #        self.rentHistory = dict2list(makeUnique(self.rentHistory, "SEQ"))
-        checkRentHistory(self.rentHistory, keyMap)
+        checkRentHistory(self.rentHistory, keyMap, checkId = False)
 
 
     def updateUserState(self, userKey, state):
