@@ -185,7 +185,7 @@ def checkDB(mongoDb, fix= False):
 
 
     print("="*80)
-    print("Check rent history")
+    print("Check RentHistory")
     keyMap = {"idx": "_id", "book": "book_id", "state": "book_state", "user": "user_id", "date": "timestamp", "retDate": "return_date"}
     if fix:
         noReturn = checkRentHistory(dict2list(rentHistory), keyMap, db=mongoDb.rentHistory, checkId = False)
@@ -293,9 +293,11 @@ def checkDB(mongoDb, fix= False):
     print("Check RentHistory")
     checkDuplicate(rentHistoryList)
     checkRentHistory(rentHistoryList, keyMap, checkId = False)
+    print(f"{len(rentHistoryList)} entries")
     print("=" * 80)
     print("Check RentLog")
     checkDuplicate(rentLogList)
+    print(f"{len(rentLogList)} entries")
     rentLogList.sort(key=logCompareWithID)
     checkRentHistory(rentLogList, keyMap, checkId = True)
     rentLogList.sort(key=logCompare)

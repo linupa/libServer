@@ -681,33 +681,32 @@ def checkRentHistory(rentlog: list, keyMap: dict, db = None, checkId = True):
         user = log[userKey]
 #        if bookId == 'HK10000073':
 #            print(f"{idx} Returned {rentlog[idx]} {type(state)} {log['SEQ']} ~ {log2['SEQ']}")
-        if checkId and idx > maxId:
-            maxId = idx
-        if checkId and prevIdx >= idx:
-            print(f"Index does not increase {prevIdx} >= {idx}")
-#            print(logCompare(rentLogList[i-1]))
-            print(rentLogList[i-1])
-#            print(logCompare(rentLogList[i]))
-            print(rentLogList[i])
-            errorCount += 1
+        if checkId:
+            if idx > maxId:
+                maxId = idx
+            if prevIdx != None and prevIdx >= idx:
+                print(f"Index does not increase {prevIdx} >= {idx}")
+    #            print(logCompare(rentLogList[i-1]))
+                print(rentLogList[i-1])
+    #            print(logCompare(rentLogList[i]))
+                print(rentLogList[i])
+                errorCount += 1
 
-        key = log[bookKey]
-        if key in bookLog:
-            bookLog[key].append(log)
+        if bookId in bookLog:
+            bookLog[bookId].append(log)
         else:
-            bookLog[key] = [log]
+            bookLog[bookId] = [log]
 
-        if prevLog and 'timestamp' in log:
-            if (log['timestamp'] == prevLog['timestamp'] and
-                log['user_id'] == prevLog['user_id'] and
-                log['book_id'] == prevLog['book_id'] ):
-                print(f"Duplicated timestamp {log['timestamp']}")
-                print(prevLog)
-                print(log)
-                if db != None:
-                    query = {'_id': log["_id"]}
-                    print(f"Delete {query}")
-                    db.delete_one(query)
+        if (prevLog and log[dateKey] == prevLog[dateKey] and
+            log[userKey] == prevLog[userKey] and
+            log[bookKey] == prevLog[bookKey] ):
+            print(f"Duplicated timestamp {log[dateKey]}")
+            print(prevLog)
+            print(log)
+            if db != None:
+                query = {'_id': log[idxKey]}
+                print(f"Delete {query}")
+                db.delete_one(query)
         prevLog = log
         prevIdx = idx
         # Skip reservation
@@ -728,9 +727,9 @@ def checkRentHistory(rentlog: list, keyMap: dict, db = None, checkId = True):
                     otherRent = True
                     otherRentDate = log2[dateKey]
             if returned:
-                rentlog[i][retKey] = log2[dateKey]
+                rentLogList[i][retKey] = log2[dateKey]
             elif otherRent:
-                rentlog[i][retKey] = otherRentDate
+                rentLogList[i][retKey] = otherRentDate
             else:
                 noReturn[bookId] = user
         if state in {0, '0'}:
