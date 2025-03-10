@@ -183,6 +183,14 @@ def checkDB(mongoDb, fix= False):
     for state in stateHist:
         numAvail -= stateHist[state]
 
+    print("="*80)
+    print("Check User")
+    for key in users:
+        user = users[key]
+        userId = user['_id']
+        if len(userId) < 2 or userId[0:2] not in {"AB", "AA"}:
+            print("Invalid user id")
+            print(user)
 
     print("="*80)
     print("Check RentHistory")
@@ -191,6 +199,14 @@ def checkDB(mongoDb, fix= False):
         noReturn = checkRentHistory(dict2list(rentHistory), keyMap, db=mongoDb.rentHistory, checkId = False)
     else:
         noReturn = checkRentHistory(dict2list(rentHistory), keyMap, checkId = False)
+
+    print("="*80)
+    print("Check RentLog")
+    keyMap = {"idx": "_id", "book": "book_id", "state": "book_state", "user": "user_id", "date": "timestamp", "retDate": "return_date"}
+    if fix:
+        noReturn = checkRentHistory(dict2list(rentLog), keyMap, db=mongoDb.rentLog, checkId = True)
+    else:
+        noReturn = checkRentHistory(dict2list(rentLog), keyMap, checkId = True)
 
     print("="*80)
     print("Compare rent history and rent")
@@ -248,6 +264,12 @@ def checkDB(mongoDb, fix= False):
             continue
         bookId = rent["book_id"]
         userId = rent["user_id"]
+
+        if userId not in users:
+            print(f"{userId} is missing")
+            print(rent)
+            errorCount += 1
+            continue
         user = users[userId]
 
         if user["deleted"] in {"y", "Y"}:
@@ -310,12 +332,13 @@ def checkDB(mongoDb, fix= False):
         rent1 = rentHistoryList[idx1]
         rent2 = rentLogList[idx2]
         logKey = rent2['_id']
-        if rent1['timestamp'] == rent2['timestamp']:
+        if rent1['timestamp'] == rent2['timestamp'] and rent1['book_id'] == rent2['book_id']:
             idx1 += 1
             idx2 += 1
             continue
-        elif rent1['timestamp'] > rent2['timestamp']:
+        elif rent1['timestamp'] > rent2['timestamp'] or rent1['book_id'] > rent2['book_id']:
             print(f"Timestamp mismatch (rentLog has more)")
+            print(rent1)
             print(rent2)
             if fix:
                 newEntry = rent2.copy()
@@ -326,6 +349,7 @@ def checkDB(mongoDb, fix= False):
         else:
             print(f"Timestamp mismatch (rentHistory has more)")
             print(rent1)
+            print(rent2)
             if fix:
                 newEntry = rent1.copy()
                 newEntry['_id'] = newLogIdx
