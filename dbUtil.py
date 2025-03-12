@@ -503,7 +503,7 @@ def makeUnique(l: list, key: str = '_id'):
     return d
 
 ignoreTag = {"encrypted_email", "encrypted_phone", "modification_date"}
-ignoreTag.update({"attach", "ATTACH", "attach_user", "ATTACH_USER"})
+ignoreTag.update({"attach", "ATTACH", "attach_user", "ATTACH_USER", "_RETURN_DATE"})
 def compare(srcEntries: dict, dstEntries: dict, conversion:dict = None, log = False):
     addedList = list()
     modifiedList = list()
@@ -707,6 +707,13 @@ def checkRentHistory(rentlog: list, keyMap: dict, db = None, checkId = True):
                 query = {'_id': log[idxKey]}
                 print(f"Delete {query}")
                 db.delete_one(query)
+#        elif log[userKey][0:2] not in {"AB", "AA"}:
+#            print(f"Invalid user ID {log[userKey]}")
+#            print(log)
+#            if db != None:
+#                query = {'_id': log[idxKey]}
+#                print(f"Delete {query}")
+#                db.delete_one(query)
         prevLog = log
         prevIdx = idx
         # Skip reservation

@@ -33,6 +33,7 @@ def uploadDatabase(clib, db, widgets, debug = False, bookOnly = False):
     users = convertToMDB(clib.users, '_id', sqlUserDict)
     rents = convertToMDB(clib.rents, '_id', sqlRentDict)
     rentlog = convertToMDB(clib.rentHistory, '_id', sqlRentHistoryDict)
+#    codeSub = convertToMDB(clib.codeSub, '_id', sqlCodeSubDict)
 
     matchCount = 0
     mismatchCount = 0
@@ -121,8 +122,6 @@ def uploadDatabase(clib, db, widgets, debug = False, bookOnly = False):
     print(f"History size: {len(historyMap)}")
     newHistory = list()
     modHistory = list()
-    newHistoryKey = list()
-    modHistoryKey = list()
     for key in rentlog:
         log = rentlog[key]
         timestamp = log["timestamp"]
@@ -133,8 +132,8 @@ def uploadDatabase(clib, db, widgets, debug = False, bookOnly = False):
                 if (entry["user_id"] == log["user_id"] and
                     entry["book_id"] == log["book_id"] and
                     entry["book_state"] == log["book_state"]):
+                    historyKey = entry["_id"]
                     if "return_date" in entry or "return_date" not in log:
-                        historyKey = entry["_id"]
                         modEntry = False
                     newEntry = False
                     break
@@ -142,15 +141,14 @@ def uploadDatabase(clib, db, widgets, debug = False, bookOnly = False):
         del copiedLog["_id"]
         if newEntry:
             newHistory.append(copiedLog)
-            newHistoryKey.append(key)
         elif modEntry:
             copiedLog["_id"] = historyKey
             modHistory.append(copiedLog)
-            modHistoryKey.append(key)
 
-    print(f"New {len(newHistoryKey)} entries, {len(modHistoryKey)} entries changed")
+    print(f"New {len(newHistory)} entries, {len(modHistory)} entries changed")
 
-    updateCloud2([newHistory, modHistory, list()], db.rentHistory)
+    if not debug:
+        updateCloud2([newHistory, modHistory, list()], db.rentHistory)
 
     mdb = db.rentLog
     srcDB = rentlog
@@ -179,9 +177,6 @@ def uploadDatabase(clib, db, widgets, debug = False, bookOnly = False):
         historyResult["del"].append(mdbDict[idx])
     result["rentHistory"].update(historyResult)
 
-    mismatch = False
-    if len(updates[2]) > 0:
-        mismatch = True
     for key in updates[1]:
         src = rentlog[key]
         dst = mdbDict[key]
@@ -190,11 +185,10 @@ def uploadDatabase(clib, db, widgets, debug = False, bookOnly = False):
             print("Mismatch")
             print(src)
             print(dst)
-            mismatch = True
             break
     widget.setState(f"Add: {len(updates[0])} Changed: {len(updates[1])} Deleted: {len(updates[2])}")
-#    if (forced or not mismatch) and not debug:
-    updateCloud(updates, srcDB, mdb, callback=widget.setUpdate)
+    if not debug:
+        updateCloud(updates, srcDB, mdb, callback=widget.setUpdate)
 
     print("="*80)
     rentInfo = db.command("collstats", "rent")
@@ -220,8 +214,9 @@ def uploadThread(window, widgets, debug, bookOnly):
     print("Done")
     print(result)
 
-    print("Report Server Log")
-    reportServerLog(db, "Upload DB", result)
+    if not debug:
+        print("Report Server Log")
+        reportServerLog(db, "Upload DB", result)
 
     time.sleep(3)
 
