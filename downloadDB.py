@@ -146,7 +146,6 @@ def downloadDatabase(clib, db, widgets, test = False):
     print("Debug rent history")
     print(type(localDB))
     print(type(cloudDB))
-    if len(updates[2]) > 0:
     for key in updates[1]:
         src = cloudDB[key]
         dst = localDB[key]

@@ -113,9 +113,13 @@ class CLibrary:
 
         self.rentHistory = data['RENTAL_HISTORY'].copy()
 
-        print(data['USER_LEVEL'])
-        print(data['CODE'])
+        for entry in data['USER_LEVEL']:
+            print(entry)
+        for entry in data['CODE']:
+            print(entry)
+        self.codeSubs = list()
         for entry in data['CODE_SUB']:
+            self.codeSubs.append(entry)
             print(entry)
 #            print(data['CODE_SUB'][key])
 
