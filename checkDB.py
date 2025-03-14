@@ -196,9 +196,9 @@ def checkDB(mongoDb, fix= False):
     print("Check RentHistory")
     keyMap = {"idx": "_id", "book": "book_id", "state": "book_state", "user": "user_id", "date": "timestamp", "retDate": "return_date"}
     if fix:
-        noReturn = checkRentHistory(dict2list(rentHistory), keyMap, db=mongoDb.rentHistory, checkId = False)
+        noReturn = checkRentHistory(dict2list(rentHistory), keyMap, db=mongoDb.rentHistory, checkId = False, checkRetDate = True)
     else:
-        noReturn = checkRentHistory(dict2list(rentHistory), keyMap, checkId = False)
+        noReturn = checkRentHistory(dict2list(rentHistory), keyMap, checkId = False, checkRetDate = True)
 
     print("="*80)
     print("Check RentLog")
@@ -297,12 +297,17 @@ def checkDB(mongoDb, fix= False):
             print(f"{userId} is overdue but not in rent")
             errorCount += 1
 
-    print("="*80)
-    print("Compare rent history and rent log")
+    print("=" * 80)
+    print("Check RentHistory")
     rentHistoryList = dict2list(rentHistory)
-    rentLogList = dict2list(rentLog)
-
     rentHistoryList.sort(key=logCompare)
+    checkDuplicate(rentHistoryList)
+    checkRentHistory(rentHistoryList, keyMap, checkId = False)
+    print(f"{len(rentHistoryList)} entries")
+
+    print("=" * 80)
+    print("Check RentLog")
+    rentLogList = dict2list(rentLog)
     rentLogList.sort(key=logCompare)
 
     lastLogIdx = 0
@@ -311,19 +316,14 @@ def checkDB(mongoDb, fix= False):
             lastLogIdx = log['_id']
     print(f"Last log idx: {lastLogIdx}")
 
-    print("=" * 80)
-    print("Check RentHistory")
-    checkDuplicate(rentHistoryList)
-    checkRentHistory(rentHistoryList, keyMap, checkId = False)
-    print(f"{len(rentHistoryList)} entries")
-    print("=" * 80)
-    print("Check RentLog")
     checkDuplicate(rentLogList)
     print(f"{len(rentLogList)} entries")
     rentLogList.sort(key=logCompareWithID)
     checkRentHistory(rentLogList, keyMap, checkId = True)
     rentLogList.sort(key=logCompare)
 
+    print("="*80)
+    print("Compare rent history and rent log")
     idx1 = 0
     idx2 = 0
     newLogIdx = lastLogIdx + 1
@@ -397,13 +397,15 @@ def checkDB(mongoDb, fix= False):
         updates = compare(rentLog, mdb2dict(mongoDb.rentLog))
         updateCloud(updates, rentLog, mongoDb.rentLog)
 
-        print("Update rent hitory")
+        '''
         rentHistory = list2dict(rentHistoryList)
         if 24530 in rentHistory:
             print(f"From {rentHistory[24530]}")
         orgDb = mdb2dict(mongoDb.rentHistory)
         if 24530 in orgDb:
             print(f"To {orgDb[24530]}")
+        '''
+        print("Update rent history")
         updates = compare(rentHistory, mdb2dict(mongoDb.rentHistory), log = True)
 #        updates[1] = list()
 #        updates[2] = list()

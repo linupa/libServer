@@ -229,6 +229,15 @@ def updateSQL(updates, srcEntries, clib, dbName, keyName, callback = None, inter
     if callback:
         callback(100)
 
+def updateDBEntry(db, key, values):
+    query = {'_id': key}
+    newValue = {"$set":dict()}
+    for label in values:
+        if label == '_id':
+            continue
+        newValue["$set"][label] = values[label]
+    db.update_one(query, newValue)
+
 def updateCloud(updates, srcEntries, dstEntries, callback = None):
     totalCount = len(updates[0]) + len(updates[1]) + len(updates[2])
     if totalCount == 0:
@@ -635,7 +644,7 @@ def renumberRentHistory(rentLog):
     print(f"{mismatchCount} logs were renumbered")
     return ret
 
-def checkRentHistory(rentlog: list, keyMap: dict, db = None, checkId = True):
+def checkRentHistory(rentlog: list, keyMap: dict, db = None, checkId = True, checkRetDate = False):
     idxKey = keyMap["idx"]
     bookKey = keyMap["book"]
     stateKey = keyMap["state"]
@@ -651,14 +660,7 @@ def checkRentHistory(rentlog: list, keyMap: dict, db = None, checkId = True):
     rentLogList = list()
     for entry in rentlog:
         logCopy = entry.copy()
-#        logCopy[idxKey] = i
         rentLogList.append(logCopy)
-#        logId = int(logCopy[idxKey])
-#        if lastId < logId and logId < 1000000000:
-#            lastId = logId
-#    print(f"Last rentLog Id: {lastId}")
-#    compare = lambda a :  a[idxKey]
-#    rentLogList.sort(key=compare)
     if checkId:
         rentLogList.sort(key=logCompareWithID)
     else:
@@ -666,37 +668,42 @@ def checkRentHistory(rentlog: list, keyMap: dict, db = None, checkId = True):
 
     numCheckout = 0
     numReturn = 0
-    noReturn = dict()
     prevIdx = 0
     errorCount = 0
     prevLog = None
     maxId = 0
     bookLog = dict()
-    for i in range(len(rentLogList)):
-        log = rentLogList[i]
+    stateStat = dict()
+    for log in rentLogList:
         idx = log[idxKey]
         bookId = log[bookKey]
         state = log[stateKey]
         timestamp = log[dateKey]
         user = log[userKey]
-#        if bookId == 'HK10000073':
-#            print(f"{idx} Returned {rentlog[idx]} {type(state)} {log['SEQ']} ~ {log2['SEQ']}")
+
+        # Check stat
+        if state in stateStat:
+            stateStat[state] += 1
+        else:
+            stateStat[state] = 1
+
+        # Check id increase
         if checkId:
             if idx > maxId:
                 maxId = idx
             if prevIdx != None and prevIdx >= idx:
                 print(f"Index does not increase {prevIdx} >= {idx}")
-    #            print(logCompare(rentLogList[i-1]))
-                print(rentLogList[i-1])
-    #            print(logCompare(rentLogList[i]))
-                print(rentLogList[i])
+                print(prevLog)
+                print(log)
                 errorCount += 1
 
+        # Create rent history per book
         if bookId in bookLog:
             bookLog[bookId].append(log)
         else:
             bookLog[bookId] = [log]
 
+        # Check duplicated record
         if (prevLog and log[dateKey] == prevLog[dateKey] and
             log[userKey] == prevLog[userKey] and
             log[bookKey] == prevLog[bookKey] ):
@@ -716,55 +723,44 @@ def checkRentHistory(rentlog: list, keyMap: dict, db = None, checkId = True):
 #                db.delete_one(query)
         prevLog = log
         prevIdx = idx
+
         # Skip reservation
         if state in {2, '2'}:
             continue
         if state in {1, '1'}:
-            returned = False
-            otherRent = False
             numCheckout += 1
-            for j in range(i + 1, len(rentLogList)):
-                log2 = rentLogList[j]
-                if bookId != log2[bookKey]:
-                    continue
-                if log2[stateKey] in {0, '0'} and user == log2[userKey]:
-                    returned = True
-                    break
-                if not otherRent and log2[stateKey] in {1, '1'} and user != log2[userKey]:
-                    otherRent = True
-                    otherRentDate = log2[dateKey]
-            if returned:
-                rentLogList[i][retKey] = log2[dateKey]
-            elif otherRent:
-                rentLogList[i][retKey] = otherRentDate
-            else:
-                noReturn[bookId] = user
         if state in {0, '0'}:
             numReturn += 1
-#        if log['SEQ'] == 352:
-#            print(f"{idx} Returned {rentlog[idx]} {type(state)} {log['SEQ']} ~ {log2['SEQ']}")
 
     print(f"{len(bookLog)} books have been rented")
+    noReturn = dict()
     for key in bookLog:
         logs = bookLog[key]
         rented = None
         for log in logs:
             state = log[stateKey]
-            if state not in {0, 1, 4}:
+            if state not in {0, 1, 4, '0', '1', '4'}:
                 continue
-            if rented and state in {1, 4}:
+            if rented and state in {1, 4, '1', '4'}:
                 print(f"Log {log}: rented but rent again")
             if not rented and state == 0:
                 print(f"Log {log}: not rented but returned")
-            if checkId and rented and rented[stateKey] == 1 and state == 0:
-                if "return_date" not in rented:
-                    print(f"Book {key} was returned but has no return data")
-                    print(rented)
-                    print(log)
-            rented = log if state in {1, 4} else None
+            if (checkRetDate and rented and
+                rented[stateKey] == 1 and state == 0 and
+                (retKey not in rented or rented[retKey] != log[dateKey])):
+                print(f"Book {key} was returned but has no/wrong return date")
+                print(rented)
+                print(log)
+                rented[retKey] = log[dateKey]
+                if db != None:
+                    updateDBEntry(db, rented[idxKey], rented)
+            rented = log if state in {1, 4, '1', '4'} else None
+        if rented != None and rented[stateKey] == 1:
+            noReturn[key] = rented[userKey]
     if checkId:
         print(f"Max ID: {maxId}")
     print(f"Checkout: {numCheckout}, Return: {numReturn}, NoReturn: {len(noReturn)}")
+    print(f"state stat: {stateStat}")
     return noReturn
 
 def reportServerLog(db, action, misc = dict()):

@@ -119,36 +119,28 @@ def uploadDatabase(clib, db, widgets, debug = False, bookOnly = False):
             historyMap[timestamp].append(entry)
         else:
             historyMap[timestamp] = [entry]
-    print(f"History size: {len(historyMap)}")
+    print(f"Cloud history size: {len(historyMap)}")
     newHistory = list()
-    modHistory = list()
     for key in rentlog:
         log = rentlog[key]
         timestamp = log["timestamp"]
         newEntry = True
-        modEntry = True
         if timestamp in historyMap:
             for entry in historyMap[timestamp]:
                 if (entry["user_id"] == log["user_id"] and
                     entry["book_id"] == log["book_id"] and
                     entry["book_state"] == log["book_state"]):
-                    historyKey = entry["_id"]
-                    if "return_date" in entry or "return_date" not in log:
-                        modEntry = False
                     newEntry = False
                     break
-        copiedLog = log.copy()
-        del copiedLog["_id"]
         if newEntry:
+            copiedLog = log.copy()
+            del copiedLog["_id"]
             newHistory.append(copiedLog)
-        elif modEntry:
-            copiedLog["_id"] = historyKey
-            modHistory.append(copiedLog)
 
-    print(f"New {len(newHistory)} entries, {len(modHistory)} entries changed")
+    print(f"New {len(newHistory)} entries")
 
     if not debug:
-        updateCloud2([newHistory, modHistory, list()], db.rentHistory)
+        updateCloud2([newHistory, list(), list()], db.rentHistory)
 
     mdb = db.rentLog
     srcDB = rentlog
