@@ -8,22 +8,6 @@ from text import getText
 import datetime
 import argparse
 
-def checkDuplicate(logs):
-    lastEntity = None
-    delEntity = list()
-    for log in logs:
-
-        if (lastEntity and log['timestamp'] == lastEntity['timestamp'] and
-            log['user_id'] == lastEntity['user_id'] and
-            log['book_id'] == lastEntity['book_id']):
-            print(f"Duplicate entry {log}")
-            print(f"                {lastEntity}")
-            delEntity.append(log)
-        else:
-            lastEntity = log.copy()
-    for entity in delEntity:
-        logs.remove(entity)
-
 def checkDB(mongoDb, fix= False):
     commit = subprocess.Popen(['git', 'rev-parse', 'HEAD'], stdout=subprocess.PIPE)
     out, _ = commit.communicate()
@@ -202,7 +186,6 @@ def checkDB(mongoDb, fix= False):
 
     print("="*80)
     print("Check RentLog")
-    keyMap = {"idx": "_id", "book": "book_id", "state": "book_state", "user": "user_id", "date": "timestamp", "retDate": "return_date"}
     if fix:
         noReturn = checkRentHistory(dict2list(rentLog), keyMap, db=mongoDb.rentLog, checkId = True)
     else:
@@ -301,9 +284,6 @@ def checkDB(mongoDb, fix= False):
     print("Check RentHistory")
     rentHistoryList = dict2list(rentHistory)
     rentHistoryList.sort(key=logCompare)
-    checkDuplicate(rentHistoryList)
-    checkRentHistory(rentHistoryList, keyMap, checkId = False)
-    print(f"{len(rentHistoryList)} entries")
 
     print("=" * 80)
     print("Check RentLog")
@@ -315,12 +295,6 @@ def checkDB(mongoDb, fix= False):
         if lastLogIdx < log['_id']:
             lastLogIdx = log['_id']
     print(f"Last log idx: {lastLogIdx}")
-
-    checkDuplicate(rentLogList)
-    print(f"{len(rentLogList)} entries")
-    rentLogList.sort(key=logCompareWithID)
-    checkRentHistory(rentLogList, keyMap, checkId = True)
-    rentLogList.sort(key=logCompare)
 
     print("="*80)
     print("Compare rent history and rent log")
