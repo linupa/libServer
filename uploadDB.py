@@ -17,12 +17,19 @@ connection = Config['connection'].format(password)
 
 global shutdown
 
-def updateMongoDB(mdb, srcDB, widget, log = False, debug = False):
-    mdbDict = mdb2dict(mdb, callback=widget.setDownload)
+def updateMongoDB(mdb, srcDB, widget = None, log = False, debug = False):
+    if widget:
+        mdbDict = mdb2dict(mdb, callback=widget.setDownload)
+    else:
+        mdbDict = mdb2dict(mdb)
     updates = compare(srcDB, mdbDict, log=log)
-    widget.setState(f"Add: {len(updates[0])} Changed: {len(updates[1])} Deleted: {len(updates[2])}")
+    if widget:
+        widget.setState(f"Add: {len(updates[0])} Changed: {len(updates[1])} Deleted: {len(updates[2])}")
     if not debug:
-        updateCloud(updates, srcDB, mdb, callback=widget.setUpdate)
+        if widget:
+            updateCloud(updates, srcDB, mdb, callback=widget.setUpdate)
+        else:
+            updateCloud(updates, srcDB, mdb)
 
     return updates
 
@@ -33,8 +40,9 @@ def uploadDatabase(clib, db, widgets, debug = False, bookOnly = False):
     users = convertToMDB(clib.users, '_id', sqlUserDict)
     rents = convertToMDB(clib.rents, '_id', sqlRentDict)
     rentlog = convertToMDB(clib.rentHistory, '_id', sqlRentHistoryDict)
-#    codeSub = convertToMDB(clib.codeSub, '_id', sqlCodeSubDict)
+    codeSub = convertToMDB(clib.codeSubs, '_id', sqlCodeSubDict)
 
+    print(codeSub)
     matchCount = 0
     mismatchCount = 0
     failCount = 0
@@ -95,6 +103,13 @@ def uploadDatabase(clib, db, widgets, debug = False, bookOnly = False):
 
     updates = updateMongoDB(db.user, users, widgets["user"], debug = debug)
     result["user"].update({"add": len(updates[0]), "change": len(updates[1]), "delete": len(updates[2])})
+
+    print("="*80)
+    codeInfo = db.command("collstats", "code")
+    userCount = codeInfo['count']
+    print(f"Code ({codeInfo['count']})")
+
+    updates = updateMongoDB(db.code, codeSub, debug = debug)
 
     print("="*80)
     rentLogInfo = db.command("collstats", "rentLog")

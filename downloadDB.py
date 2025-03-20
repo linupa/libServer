@@ -87,6 +87,16 @@ def downloadDatabase(clib, db, widgets, test = False):
             user['DELETE_YN'] = "N"
 
     print("="*80)
+    codeInfo = db.command("collstats", "code")
+    print(f"Code ({codeInfo['count']})")
+    codes = convertToSQL(db.code, "SEQ", sqlCodeSubDict)
+    result["code"] = {"count": len(codes)}
+    for key in codes:
+        code = codes[key]
+        del code["SEQ"]
+        print(f"{key}: {code}")
+
+    print("="*80)
     rentLogInfo = db.command("collstats", "rentLog")
     widgets["rentHistory"].setCount(rentLogInfo['count'])
     print(f"RentHistory ({rentLogInfo['count']})")
@@ -135,6 +145,13 @@ def downloadDatabase(clib, db, widgets, test = False):
     if not test:
         updateSQL(updates, users, clib, "users", "USER_CODE", widgets["user"].setUpdate)
     result["user"].update({"add": len(updates[0]), "change": len(updates[1]), "delete": len(updates[2])})
+
+    print("Update code")
+    updates = compare(codes, clib.codeSubs, False)
+    print(updates)
+    if len(updates[0]) + len(updates[1]) + len(updates[2]) > 0:
+        updateSQL([list(), list(), ['001', '002', '003', '004']], None, clib, "code_sub", "CODE_NUMBER")
+        updateSQL([codes.keys(), list(), list()], codes, clib, 'code_sub', '')
 
     print("Update rent histories")
 #    updateDB(list2dict(clib.rentHistory, "SEQ"), rentlog, clib, "rental_history", "SEQ", widgets["rent"].setUpdate)

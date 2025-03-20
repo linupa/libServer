@@ -78,6 +78,14 @@ sqlRentHistoryDict = {
     'REG_DATE': "timestamp",
     '_RETURN_DATE': "return_date"
 }
+
+sqlCodeSubDict = {
+    'SEQ': '_id',
+    'CODE_NUMBER': 'code_number',
+    'SUB_CODE': 'sub_code',
+    'SUB_NAME': 'sub_name'
+}
+
 def logKey(entry, key='timestamp'):
     if key not in entry:
         print(f"key {key} not exist")

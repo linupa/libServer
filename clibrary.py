@@ -117,10 +117,12 @@ class CLibrary:
             print(entry)
         for entry in data['CODE']:
             print(entry)
-        self.codeSubs = list()
+        self.codeSubs = dict()
         for entry in data['CODE_SUB']:
-            self.codeSubs.append(entry)
-            print(entry)
+            key = f"{entry['CODE_NUMBER']}_{str(entry['SUB_CODE'])}"
+#            entry['SEQ'] = key
+            self.codeSubs[key] = entry
+            print(f"{key}: {entry}")
 #            print(data['CODE_SUB'][key])
 
         self.rentHistory.sort(key=lambda e : logKey(e,"REG_DATE"))
