@@ -184,12 +184,22 @@ def checkDB(mongoDb, fix= False):
     else:
         noReturn = checkRentHistory(dict2list(rentHistory), keyMap, checkId = False, checkRetDate = True)
 
+    for key in rentHistory:
+        entry = rentHistory[key]
+        if entry['user_id'][0:2] == 'EE':
+            print(entry)
+
     print("="*80)
     print("Check RentLog")
     if fix:
         noReturn = checkRentHistory(dict2list(rentLog), keyMap, db=mongoDb.rentLog, checkId = True)
     else:
         noReturn = checkRentHistory(dict2list(rentLog), keyMap, checkId = True)
+
+    for key in rentLog:
+        entry = rentLog[key]
+        if entry['user_id'][0:2] == 'EE':
+            print(entry)
 
     print("="*80)
     print("Compare rent history and rent")
@@ -306,11 +316,13 @@ def checkDB(mongoDb, fix= False):
         rent1 = rentHistoryList[idx1]
         rent2 = rentLogList[idx2]
         logKey = rent2['_id']
-        if rent1['timestamp'] == rent2['timestamp'] and rent1['book_id'] == rent2['book_id']:
+        t1 = rent1['timestamp']
+        t2 = rent2['timestamp']
+        if t1 == t2 and rent1['book_id'] == rent2['book_id']:
             idx1 += 1
             idx2 += 1
             continue
-        elif rent1['timestamp'] > rent2['timestamp'] or rent1['book_id'] > rent2['book_id']:
+        elif t1 > t2 or (t1 == t2 and rent1['book_id'] > rent2['book_id']):
             print(f"Timestamp mismatch (rentLog has more)")
             print(rent1)
             print(rent2)
@@ -331,6 +343,8 @@ def checkDB(mongoDb, fix= False):
                 print(f"Append {newEntry} to rent log")
                 newLogIdx += 1
             idx1 += 1
+
+#    return [list(), list(), list(), list()]
 
     if fix:
         print("Compare log histories again")
