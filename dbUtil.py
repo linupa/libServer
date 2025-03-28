@@ -192,7 +192,7 @@ def dictToString2(d, valueOnly = False):
         return l
     return ", ".join(l)
 
-def updateSQL(updates, srcEntries, clib, dbName, keyName, callback = None, interval = 100):
+def updateSQL(updates, srcEntries, clib, dbName, keyName, callback = None, interval = 100, debug = False):
     totalCount = len(updates[0]) + len(updates[1]) + len(updates[2])
     if totalCount == 0:
         totalCount = 1
@@ -211,6 +211,8 @@ def updateSQL(updates, srcEntries, clib, dbName, keyName, callback = None, inter
         label = dictToString(entry, labelOnly = True)
         value = dictToString2(entry, valueOnly = True)
         queryStr = "insert into {} ({}) values ({})".format(dbName, label, ','.join(['?'] * len(value)))
+        if debug:
+            print(queryStr)
         count += 1
         if callback and (count%interval) == 0:
             callback(100 * count / totalCount)
@@ -227,6 +229,8 @@ def updateSQL(updates, srcEntries, clib, dbName, keyName, callback = None, inter
         queryStr = f"update {dbName} set {label} where {keyName}='{key}'"
 #        print(queryStr)
 #        print(value)
+        if debug:
+            print(queryStr)
         count += 1
         if callback and (count%interval) == 0:
             callback(100 * count / totalCount)
@@ -681,6 +685,7 @@ def checkRentHistory(rentlog: list, keyMap: dict, db = None, checkId = True, che
     prevLog = None
     maxId = 0
     bookLog = dict()
+    userLog = dict()
     stateStat = dict()
     for log in rentLogList:
         idx = log[idxKey]
@@ -710,6 +715,12 @@ def checkRentHistory(rentlog: list, keyMap: dict, db = None, checkId = True, che
             bookLog[bookId].append(log)
         else:
             bookLog[bookId] = [log]
+
+        # Create rent history per user
+        if user in userLog and state == 1:
+            userLog[user].append(log)
+        else:
+            userLog[user] = [log]
 
         # Check duplicated record
         if (prevLog and log[dateKey] == prevLog[dateKey] and
@@ -741,6 +752,7 @@ def checkRentHistory(rentlog: list, keyMap: dict, db = None, checkId = True, che
             numReturn += 1
 
     print(f"{len(bookLog)} books have been rented")
+    print(f"{len(userLog)} users have rented")
     noReturn = dict()
     for key in bookLog:
         logs = bookLog[key]

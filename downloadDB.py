@@ -130,6 +130,7 @@ def downloadDatabase(clib, db, widgets, test = False):
         updateSQL(updates, books, clib, "book", "BARCODE", widgets["book"].setUpdate)
     result["book"].update({"add": len(updates[0]), "change": len(updates[1]), "delete": len(updates[2])})
 
+    print("="*80)
     print("Update marcs")
 #    updateDB(clib.marcs, marcs, clib, "marc", "SEQ", widgets["marc"].setUpdate)
     updates = compare(marcs, clib.marcs, False)
@@ -138,6 +139,7 @@ def downloadDatabase(clib, db, widgets, test = False):
         updateSQL(updates, marcs, clib, "marc", "SEQ", widgets["marc"].setUpdate)
     result["marc"].update({"add": len(updates[0]), "change": len(updates[1]), "delete": len(updates[2])})
 
+    print("="*80)
     print("Update users")
 #    updateDB(clib.users, users, clib, "users", "USER_CODE", widgets["user"].setUpdate)
     updates = compare(users, clib.users, False)
@@ -146,13 +148,18 @@ def downloadDatabase(clib, db, widgets, test = False):
         updateSQL(updates, users, clib, "users", "USER_CODE", widgets["user"].setUpdate)
     result["user"].update({"add": len(updates[0]), "change": len(updates[1]), "delete": len(updates[2])})
 
+    print("="*80)
     print("Update code")
     updates = compare(codes, clib.codeSubs, False)
     print(updates)
-    if len(updates[0]) + len(updates[1]) + len(updates[2]) > 0:
-        updateSQL([list(), list(), ['001', '002', '003', '004']], None, clib, "code_sub", "CODE_NUMBER")
-        updateSQL([codes.keys(), list(), list()], codes, clib, 'code_sub', '')
+    print("Do not download codeSub. App crashes")
+    '''
+    if not test and len(updates[0]) + len(updates[1]) + len(updates[2]) > 0:
+        updateSQL([list(), list(), ['001', '002', '003', '004']], None, clib, "code_sub", "CODE_NUMBER", debug = True)
+        updateSQL([codes.keys(), list(), list()], codes, clib, 'code_sub', '', debug = True)
+    '''
 
+    print("="*80)
     print("Update rent histories")
 #    updateDB(list2dict(clib.rentHistory, "SEQ"), rentlog, clib, "rental_history", "SEQ", widgets["rent"].setUpdate)
     localDB = list2dict(clib.rentHistory, "SEQ")

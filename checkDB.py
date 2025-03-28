@@ -56,6 +56,7 @@ def checkDB(mongoDb, fix= False):
     stateHist = dict()
     seqNums = set()
     errorCount = 0
+    bookLoc = dict()
     print("="*80)
     print("Compare Book and MARC")
     for key in books:
@@ -89,6 +90,11 @@ def checkDB(mongoDb, fix= False):
             state = rents[seqnum]['state']
 #            print(f"{key}: {state}")
             stateHist[state] = stateHist[state] + 1 if state in stateHist else 1
+        loc = book["location"]
+        if loc in bookLoc:
+            bookLoc[loc] += 1
+        else:
+            bookLoc[loc] = 1
 
     print("="*80)
     print("Check Sequence numbers")
@@ -403,6 +409,7 @@ def checkDB(mongoDb, fix= False):
     print("="*80)
     print(f"Avaiable {numAvail} / Valld {numValid} / All {len(books)} / Deleted {numDeleted}")
     print(stateHist)
+    print(bookLoc)
 
     print("="*80)
     print(f"Total error count {errorCount}")

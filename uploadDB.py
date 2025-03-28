@@ -40,9 +40,9 @@ def uploadDatabase(clib, db, widgets, debug = False, bookOnly = False):
     users = convertToMDB(clib.users, '_id', sqlUserDict)
     rents = convertToMDB(clib.rents, '_id', sqlRentDict)
     rentlog = convertToMDB(clib.rentHistory, '_id', sqlRentHistoryDict)
-    codeSub = convertToMDB(clib.codeSubs, '_id', sqlCodeSubDict)
+#    codeSub = convertToMDB(clib.codeSubs, '_id', sqlCodeSubDict)
 
-    print(codeSub)
+#    print(codeSub)
     matchCount = 0
     mismatchCount = 0
     failCount = 0
@@ -104,12 +104,14 @@ def uploadDatabase(clib, db, widgets, debug = False, bookOnly = False):
     updates = updateMongoDB(db.user, users, widgets["user"], debug = debug)
     result["user"].update({"add": len(updates[0]), "change": len(updates[1]), "delete": len(updates[2])})
 
+    '''
     print("="*80)
     codeInfo = db.command("collstats", "code")
     userCount = codeInfo['count']
     print(f"Code ({codeInfo['count']})")
 
     updates = updateMongoDB(db.code, codeSub, debug = debug)
+    '''
 
     print("="*80)
     rentLogInfo = db.command("collstats", "rentLog")

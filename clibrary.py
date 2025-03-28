@@ -115,15 +115,21 @@ class CLibrary:
 
         for entry in data['USER_LEVEL']:
             print(entry)
+
         for entry in data['CODE']:
             print(entry)
+
         self.codeSubs = dict()
         for entry in data['CODE_SUB']:
             key = f"{entry['CODE_NUMBER']}_{str(entry['SUB_CODE'])}"
 #            entry['SEQ'] = key
             self.codeSubs[key] = entry
-            print(f"{key}: {entry}")
+#            print(f"{key}: {entry}")
 #            print(data['CODE_SUB'][key])
+        codeSubKeys = list(self.codeSubs.keys())
+        codeSubKeys.sort()
+        for key in codeSubKeys:
+            print(f"{key}: {self.codeSubs[key]}")
 
         self.rentHistory.sort(key=lambda e : logKey(e,"REG_DATE"))
 
