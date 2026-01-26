@@ -106,11 +106,13 @@ class ClaimBuilder:
         rows = list()
         rows.append(list())
         lastRow = rows[-1]
+        print(f"Generate {len(showBooks)}")
         for book in showBooks:
             if len(lastRow) == 8:
                 rows.append(list())
                 lastRow = rows[-1]
             lastRow.append(book)
+            print(f"{book['BOOKNAME']}")
         with codecs.open(fileName, "w", "utf-8") as f:
             for entry in htmlStr1:
                 f.write(entry + "\n")

@@ -41,7 +41,7 @@ RENT_PERIOD = 22
 class CLibrary:
     def __init__(self):
         self.db = CLibDB()
-        tables = ('BOOK', 'BOOK_LENT', 'RENTAL_HISTORY', 'USERS', 'MARC', 'MARC_TAG', 'USER_LEVEL', 'CODE', 'CODE_SUB' )
+        tables = ('BOOK', 'BOOK_LENT', 'RENTAL_HISTORY', 'USERS', 'MARC', 'MARC_TAG', 'USER_LEVEL', 'CODE', 'CODE_SUB', 'CATEGORY', 'CATEGORY_SUB' )
 
         self.labels = dict()
         data = dict()
@@ -68,8 +68,7 @@ class CLibrary:
                     entry[label[j]] = item[j]
 
                 table.append(entry)
-            print(tableName)
-            print(len(table))
+            print(f"Entries in {tableName}: {len(table)}")
 #        print(data)
         self.books = dict()
         numBook = 0
@@ -127,7 +126,7 @@ class CLibrary:
 #            print(f"{key}: {entry}")
 #            print(data['CODE_SUB'][key])
         codeSubKeys = list(self.codeSubs.keys())
-        codeSubKeys.sort()
+#        codeSubKeys.sort()
         for key in codeSubKeys:
             print(f"{key}: {self.codeSubs[key]}")
 

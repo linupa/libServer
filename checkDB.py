@@ -185,7 +185,7 @@ def checkDB(mongoDb, fix= False):
     print("="*80)
     print("Check RentHistory")
     keyMap = {"idx": "_id", "book": "book_id", "state": "book_state", "user": "user_id", "date": "timestamp", "retDate": "return_date"}
-    if fix:
+    if True:
         noReturn = checkRentHistory(dict2list(rentHistory), keyMap, db=mongoDb.rentHistory, checkId = False, checkRetDate = True)
     else:
         noReturn = checkRentHistory(dict2list(rentHistory), keyMap, checkId = False, checkRetDate = True)
@@ -318,6 +318,8 @@ def checkDB(mongoDb, fix= False):
     idx2 = 0
     newLogIdx = lastLogIdx + 1
     newRentHistory = list()
+    print(f"RentHistory length: {len(rentHistoryList)}")
+    print(f"RentLog     length: {len(rentLogList)}")
     while idx1 < len(rentHistoryList) and idx2 < len(rentLogList):
         rent1 = rentHistoryList[idx1]
         rent2 = rentLogList[idx2]
@@ -330,7 +332,7 @@ def checkDB(mongoDb, fix= False):
             continue
         elif t1 > t2 or (t1 == t2 and rent1['book_id'] > rent2['book_id']):
             print(f"Timestamp mismatch (rentLog has more)")
-            print(rent1)
+#            print(rent1)
             print(rent2)
             if fix:
                 newEntry = rent2.copy()
@@ -341,7 +343,7 @@ def checkDB(mongoDb, fix= False):
         else:
             print(f"Timestamp mismatch (rentHistory has more)")
             print(rent1)
-            print(rent2)
+#            print(rent2)
             if fix:
                 newEntry = rent1.copy()
                 newEntry['_id'] = newLogIdx
@@ -420,6 +422,8 @@ def checkDB(mongoDb, fix= False):
     print(f"Check requests")
     for key in requests:
         request = requests[key]
+        if request["state"] == "done":
+            continue
         print(request)
         if request["action"] != "extend":
             continue
@@ -465,8 +469,7 @@ if __name__ == '__main__':
     else:
         from config import Config
         password = Config['password']
-    connection = 'mongodb+srv://linupa:{}@hkmcclibrary.s59ur1w.mongodb.net/?retryWrites=true&w=majority'.format(password)
-    print(connection)
+    connection = Config['connection'].format(password)
     client = MongoClient(connection)
     mongoDb = client.library
 
