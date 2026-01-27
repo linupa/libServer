@@ -466,10 +466,11 @@ if __name__ == '__main__':
     # Open MongoDB
     if "GITHUB_ACTIONS" in os.environ:
         password = os.environ["MONGODB_PASSWORD"]
+        connection = os.environ['CONNECTION'].format(password)
     else:
         from config import Config
         password = Config['password']
-    connection = Config['connection'].format(password)
+        connection = Config['connection'].format(password)
     client = MongoClient(connection)
     mongoDb = client.library
 
