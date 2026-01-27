@@ -21,5 +21,6 @@ jobs:
 
             - name: check DB
               env:
+                CONNECTION: ${{ vars.CONNECTION }}
                 MONGODB_PASSWORD: ${{ secrets.MONGODB_PASSWORD }}
               run: python3 checkDB.py
