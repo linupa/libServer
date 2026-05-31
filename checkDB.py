@@ -420,9 +420,11 @@ def checkDB(mongoDb, fix= False):
 
     print("="*80)
     print(f"Check requests")
+    updated_rents = list()
+    updated_requests = list()
     for key in requests:
         request = requests[key]
-        if request["state"] == "done":
+        if request["state"] in {"done", "rejected"}:
             continue
         print(request)
         if request["action"] != "extend":
@@ -432,26 +434,53 @@ def checkDB(mongoDb, fix= False):
         bookId = request["book_id"]
         if bookId not in books:
             print(f"Unknown book ID: {bookId}")
+            request["state"] = "rejected"
+            updated_requests.append(request)
             continue
         seq = books[bookId]["seqnum"]
         if seq not in rents:
-            print(f"Unknown seq number: {seq}")
-            for key in rents:
-                rent = rents[key]
-                if rent["book_id"] == bookId:
-                    print(f"Found book in {rent}")
+            print(f"Unknown seq number: {seq} returned?")
+            request["state"] = "rejected"
+            updated_requests.append(request)
             continue
         rent = rents[seq]
         print(rent)
         if rent["book_id"] != bookId or rent["user_id"] != request["user_id"]:
             print(f"Rent info does not match {rent}")
+            request["state"] = "rejected"
+            updated_requests.append(request)
+            continue
+        if 'extend_count' in rent and rent['extend_count'] >= 1:
+            print(f"Extend limit exceeded {rent}")
+            request["state"] = "rejected"
+            updated_requests.append(request)
+            continue
         print(f"Extend due date {rent['return_date']} for {bookId}")
         dueDate = datetime.datetime.strptime(rent["return_date"], "%Y-%m-%d")
-        print(dueDate)
         now = datetime.datetime.now()
+        if now > dueDate:
+            print(f"expired {bookId}")
+            request["state"] = "rejected"
+            updated_requests.append(request)
+            continue
+
+
         refDate = now if now > dueDate else dueDate
         newRetDate = timeToString(refDate + datetime.timedelta(days=21), True)
         print(f"New due date {newRetDate}")
+        rent['return_date'] = newRetDate
+        rent['extend_count'] = rent['extend_count'] + 1 if 'extend_count' in rent else 1
+        print(rent)
+        request["state"] = "done"
+        updated_requests.append(request)
+        updated_rents.append(rent)
+
+    for entry in updated_rents:
+        print(entry)
+    for entry in updated_requests:
+        print(entry)
+    updateCloud2([list(), updated_rents, list()], mongoDb.rent)
+    updateCloud2([list(), updated_requests, list()], mongoDb.request)
 
 
     return [books, users, rents, rentHistory]
