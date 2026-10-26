@@ -27,7 +27,8 @@
       children: [
         { id: "label_info", type: "label", x: 14, y: 12, w: 572, h: 36, align: "left", valign: "middle", text: m.info },
         { id: "panel_table", type: "panel", x: 14, y: 52, w: 572, h: 186, back: "white" },
-        { id: "label_phase", type: "label", x: 14, y: 246, w: 572, h: 22, align: "left", valign: "middle", text: "", bold: true },
+        { id: "label_phase", type: "label", x: 14, y: 242, w: 572, h: 22, align: "left", valign: "middle", text: "", bold: true },
+        { id: "label_time", type: "label", x: 14, y: 264, w: 572, h: 20, align: "left", valign: "middle", text: "" },
         { id: "btn_test", type: "button", x: 14, y: 288, w: 150, h: 32, text: "비교만 하기", bold: true },
         ...(mode === "upload" ? [{ id: "check_bookOnly", type: "check", x: 176, y: 294, w: 104, h: 20, text: "도서·MARC만" }] : []),
         { id: "btn_run", type: "button", x: 286, y: 288, w: 150, h: 32, text: m.verb, bold: true },
@@ -39,11 +40,13 @@
 
   const esc = t => String(t ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
   const api = path => new URL(`api/${path}`, location.href);
+  const duration = sec => sec >= 60 ? `${Math.floor(sec / 60)}분 ${String(sec % 60).padStart(2, "0")}초` : `${sec}초`;
 
   function init(ctx, mode, m) {
     const $ = ctx.input;
     const table = ctx.box("panel_table");
     const phase = ctx.box("label_phase");
+    const time = ctx.box("label_time");
     let timer = null;
     let started = false;  // tell the result only for a run started from this dialog
 
@@ -66,6 +69,17 @@
         : !mine ? ""
         : s.state === "error" ? "실패했습니다."
         : s.test ? "비교를 마쳤습니다. (바뀐 것은 없습니다)" : `${m.verb}를 마쳤습니다.`;
+      // This direction's job: when it started and finished (server times); otherwise the last real run
+      const last = (s && s.last && s.last[mode]) || "";
+      if (mine && s.startedAt) {
+        const span = s.finishedAt ? ` · 완료 ${s.finishedAt.slice(11)} (소요 ${duration(s.elapsed || 0)})`
+          : ` (경과 ${duration(s.elapsed || 0)})`;
+        // A comparison, or a run still going, isn't the last real run yet
+        const before = last && (running || s.test) ? ` · 마지막 ${m.verb} ${last}` : "";
+        time.textContent = `시작 ${s.startedAt}${span}${before}`;
+      } else {
+        time.textContent = s ? `마지막 ${m.verb}: ${last || "없음"}` : "";
+      }
       ["btn_test", "btn_run"].forEach(n => { $(n).disabled = running || !ctx.library.isServer; });
     }
 

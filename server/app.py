@@ -12,7 +12,7 @@ Set "readOnly": true in config.json to refuse all writes.
 """
 import threading
 from contextlib import contextmanager
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 
 from flask import Flask, Response, abort, jsonify, request, send_file, send_from_directory
@@ -21,6 +21,7 @@ import backup
 import circulation
 import records
 import repo
+import settings_store
 from db import config, connect
 
 WEB = Path(__file__).resolve().parent.parent / "web"
@@ -443,6 +444,15 @@ def failed(e):
 CLOUD = {"state": "idle"}
 CLOUD_LOCK = threading.Lock()
 CLOUD_TABLES = ("book", "marc", "user", "rentHistory", "rent")
+# The last real (not test) download and upload, kept in clib_settings.json across restarts
+CLOUD_LAST = {"download": "CLOUD_LAST_DOWNLOAD", "upload": "CLOUD_LAST_UPLOAD"}
+
+
+TIME_FORMAT = "%Y-%m-%d %H:%M:%S"
+
+
+def now_text():
+    return datetime.now().strftime(TIME_FORMAT)
 
 
 def cloud_job(mode, test, book_only):
@@ -459,11 +469,12 @@ def cloud_job(mode, test, book_only):
             result = cloud.upload(conn, status, test, book_only)
         status["phase"] = "완료"
         if not test:
+            settings_store.write_overlay({CLOUD_LAST[mode]: now_text()})
             try:
                 cloud.report_to_cloud("Download DB" if mode == "download" else "Upload DB", result)
             except Exception as e:  # the data went through; only the cloud log failed
                 status["warning"] = f"클라우드 기록 실패: {type(e).__name__}"
-        status.update(state="done", result=result)
+        status.update(state="done", result=result, finishedAt=now_text())
     except Exception as e:
         conn.rollback()
         message = str(e)
@@ -473,7 +484,7 @@ def cloud_job(mode, test, book_only):
                 message = message.replace(secret, "***")
         except Exception:
             pass
-        status.update(state="error", error=message[:500])
+        status.update(state="error", error=message[:500], finishedAt=now_text())
     finally:
         conn.rollback()  # an upload only reads; a finished download is already committed
         conn.close()
@@ -490,6 +501,7 @@ def start_cloud_job(mode):
             return jsonify({"error": f"이미 클라우드 {what}가 진행중입니다."}), 409
         CLOUD.clear()
         CLOUD.update(state="running", mode=mode, test=test, bookOnly=bool(body.get("bookOnly")), phase="연결 중",
+                     startedAt=now_text(),
                      tables={name: {} for name in CLOUD_TABLES})
     threading.Thread(target=cloud_job, args=(mode, test, bool(body.get("bookOnly"))), daemon=True).start()
     return jsonify({"ok": True})
@@ -511,7 +523,14 @@ def cloud_upload():
 @app.get("/api/cloud")
 @app.get("/api/cloud/download")
 def cloud_status():
-    return jsonify(CLOUD)
+    """The current job (startedAt, finishedAt, elapsed seconds) and the last real download / upload."""
+    status = dict(CLOUD)
+    if status.get("startedAt"):
+        end = datetime.strptime(status["finishedAt"], TIME_FORMAT) if status.get("finishedAt") else datetime.now()
+        status["elapsed"] = int((end - datetime.strptime(status["startedAt"], TIME_FORMAT)).total_seconds())
+    saved = settings_store.overlay()
+    status["last"] = {mode: saved.get(key, "") for mode, key in CLOUD_LAST.items()}
+    return jsonify(status)
 
 
 # ---- the web app ------------------------------------------------------------
