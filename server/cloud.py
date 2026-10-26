@@ -459,14 +459,50 @@ def upload(conn, status, test=False, book_only=False):
         client.close()
 
 
-def report_to_cloud(action, result):
-    """reportServerLog(): note a download or upload in the cloud's serverLog."""
-    entry = dict(result, action=action, time=str(datetime.datetime.now()), source="CLIB Web")
+def public_ip():
+    """This host's public address, from api.ipify.org as in libServer; "" when unreachable."""
+    import json
+    import urllib.request
     try:
-        entry["commit"] = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True, timeout=10,
-                                         cwd=Path(__file__).parent).stdout.strip()
+        with urllib.request.urlopen("https://api.ipify.org/?format=json", timeout=10) as response:
+            return json.load(response).get("ip") or ""
+    except (OSError, ValueError):
+        return ""
+
+
+def git_commit():
+    """The checked-out commit. git may be missing from the server's PATH or refuse the folder
+    (another user's checkout), so .git is read directly when it gives nothing."""
+    here = Path(__file__).resolve().parent
+    try:
+        commit = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True, timeout=10,
+                                cwd=here).stdout.strip()
+        if commit:
+            return commit
     except (OSError, subprocess.SubprocessError):
         pass
+    git = next((d / ".git" for d in (here, *here.parents) if (d / ".git").is_dir()), None)
+    if not git:
+        return ""
+    try:
+        head = (git / "HEAD").read_text().strip()
+        if not head.startswith("ref: "):
+            return head
+        ref = head[5:]
+        if (git / ref).exists():
+            return (git / ref).read_text().strip()
+        for line in (git / "packed-refs").read_text().splitlines():
+            if line.endswith(" " + ref):
+                return line.split()[0]
+    except OSError:
+        pass
+    return ""
+
+
+def report_to_cloud(action, result):
+    """reportServerLog(): note a download or upload in the cloud's serverLog."""
+    entry = dict(result, action=action, time=str(datetime.datetime.now()), source="CLIB Web",
+                 ip=public_ip(), commit=git_commit())
     client, cloud_db = open_cloud()
     try:
         cloud_db.serverLog.insert_one(entry)
