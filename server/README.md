@@ -355,7 +355,9 @@ real download a "Download DB" entry goes to the cloud's `serverLog`.
 ```
 
 `{}` in `connection` is where the password goes. Instead of copying the values,
-`"libServerConfig": "C:\\path\\to\\libServer\\config.py"` reads them from libServer.
+`"libServerConfig": "C:\\path\\to\\libServer\\config.py"` reads them from libServer. With
+neither, the server reads libServer's `config.py` one folder up (`..\config.py`), so a
+libServer checkout needs no `config.json`.
 
 | route | |
 |---|---|

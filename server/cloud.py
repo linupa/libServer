@@ -9,6 +9,7 @@ The connection comes from config.json (never from the code, and never logged):
     "cloud": {"connection": "mongodb+srv://user:{}@host/...", "password": "...", "database": "library"}
 or, to share libServer's settings instead of copying them:
     "cloud": {"libServerConfig": "C:\\\\Users\\\\me\\\\srcs\\\\libServer\\\\config.py"}
+Without either, libServer's config.py next to this folder (..\\config.py) is used.
 `connection` has a {} where the password goes, as in libServer.
 """
 import datetime
@@ -53,15 +54,20 @@ TABLES = [
 ]
 # Differences in these don't make a row "changed" (dbUtil.ignoreTag)
 IGNORED = {"ATTACH", "ATTACH_USER"}
+# libServer's own settings, used when config.json has no "cloud" connection
+LIBSERVER_CONFIG = Path(__file__).resolve().parent.parent / "config.py"
 
 
 def cloud_settings():
     cfg = dict(config().get("cloud") or {})
-    if cfg.get("libServerConfig"):
+    shared_path = cfg.get("libServerConfig")
+    if not shared_path and not cfg.get("connection") and LIBSERVER_CONFIG.exists():
+        shared_path = LIBSERVER_CONFIG
+    if shared_path:
         import runpy
-        shared = runpy.run_path(cfg["libServerConfig"]).get("Config") or {}
-        cfg.setdefault("connection", shared.get("connection"))
-        cfg.setdefault("password", shared.get("password"))
+        shared = runpy.run_path(str(shared_path)).get("Config") or {}
+        for name in ("connection", "password", "key"):
+            cfg.setdefault(name, shared.get(name))
     if not cfg.get("connection"):
         raise RuntimeError("클라우드 연결 정보가 없습니다.\nserver\\config.json의 \"cloud\"를 설정해주세요.")
     cfg.setdefault("database", "library")
