@@ -364,6 +364,10 @@ libServer checkout needs no `config.json`.
 | `POST /api/cloud/download` `{test}` | start a download in the background; `test: true` only compares |
 | `POST /api/cloud/upload` `{test, bookOnly}` | make the cloud match this server; `bookOnly` sends only books and MARC |
 | `GET /api/cloud` | progress of the current job: mode, state, phase, startedAt / finishedAt / elapsed (seconds), and per table local / count / downloaded / add / change / delete / applied; `last`: the time of the last real download and upload (kept in `clib_settings.json`) |
+| `GET /api/notices` | 게시판: the cloud's `notice` collection, newest first; `[{no, title, writeDate, content}]` |
+| `POST /api/notices` `{title, writeDate, content}` | add a notice, numbered after the highest `_id` |
+| `POST /api/notices/<no>` `{title, writeDate, content}` | change notice `no` |
+| `POST /api/notices/<no>/delete` | delete notice `no` |
 
 Upload (`cloud.upload`, after libServer's `uploadDB.py`) sends every table the download takes,
 compared the same way and changed with inserts, deletes and `$set` updates. Only 대출 rows

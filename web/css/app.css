@@ -649,6 +649,6 @@ tbody tr.row-attach td { background: bisque; }
 .ctl.progress::-webkit-progress-value { background: #06b025; }
 .ctl.progress::-moz-progress-bar { background: #06b025; }
 /* 연체관리 / 회원번호관리 / 삭제된 회원번호 관리: grids with a border, like DataGridView */
-.form-BookDelay .ctl.list, .form-UserCodeDlg .ctl.list, .form-DeleteUsers .ctl.list { border: 1px solid #828790; }
+.form-BookDelay .ctl.list, .form-UserCodeDlg .ctl.list, .form-DeleteUsers .ctl.list, .form-BoardFrm .ctl.list { border: 1px solid #828790; }
 /* 등급별 회원번호관리: numbers outside the grade's 구분기호 */
 tbody tr.row-bisque td { background: bisque; }

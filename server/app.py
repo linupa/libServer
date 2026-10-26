@@ -533,6 +533,88 @@ def cloud_status():
     return jsonify(status)
 
 
+# ---- 게시판: the cloud's notices ------------------------------------------------
+
+# Saving a notice works on the cloud directly; one at a time, so two new ones don't share a number
+NOTICE_LOCK = threading.Lock()
+
+
+def notice_row(d):
+    return {"no": str(d.get("_id", "")), "title": d.get("title") or "", "writeDate": d.get("date") or "",
+            "content": d.get("content") or ""}
+
+
+def with_notices(fn):
+    """Run fn(collection) on the cloud's `notice`; (result, None) or (None, error response)."""
+    import cloud
+    try:
+        client, cloud_db = cloud.open_cloud()
+        try:
+            return fn(cloud_db.notice), None
+        finally:
+            client.close()
+    except Exception as e:  # only the type: the driver's message can hold the connection string
+        app.logger.warning("notices: %s", type(e).__name__)
+        return None, (jsonify({"error": f"클라우드 공지를 처리하지 못했습니다. ({type(e).__name__})"}), 502)
+
+
+@app.get("/api/notices")
+def notices():
+    """The cloud's `notice` collection, newest first: [{no, title, writeDate, content}]."""
+    docs, failed = with_notices(lambda notice: list(notice.find()))
+    if failed:
+        return failed
+    rows = [notice_row(d) for d in docs]
+    rows.sort(key=lambda r: (r["writeDate"], r["no"].zfill(10)), reverse=True)
+    return jsonify(rows)
+
+
+@app.post("/api/notices")
+@app.post("/api/notices/<no>")
+def save_notice(no=None):
+    """Add a notice (numbered after the highest _id) or change notice `no`: {title, writeDate, content}."""
+    if read_only():
+        return jsonify(READ_ONLY_MESSAGE)
+    body = request.get_json(force=True)
+    fields = {"title": (body.get("title") or "").strip(), "date": (body.get("writeDate") or "").strip(),
+              "content": body.get("content") or ""}
+    if not fields["title"]:
+        return jsonify({"error": "제목을 입력해주세요."})
+    try:
+        date.fromisoformat(fields["date"])
+    except ValueError:
+        return jsonify({"error": "작성일을 YYYY-MM-DD로 입력해주세요."})
+
+    def save(notice):
+        if no is not None:
+            return notice.update_one({"_id": no}, {"$set": fields}).matched_count and no
+        numbers = [int(d["_id"]) for d in notice.find({}, {"_id": 1}) if str(d["_id"]).isdigit()]
+        new_no = str(max(numbers, default=0) + 1)
+        notice.insert_one({"_id": new_no, **fields})
+        return new_no
+
+    with NOTICE_LOCK:
+        saved, failed = with_notices(save)
+    if failed:
+        return failed
+    if not saved:
+        return jsonify({"error": f"없는 공지입니다. ({no})"}), 404
+    return jsonify({"ok": True, "notice": notice_row({"_id": saved, **fields})})
+
+
+@app.post("/api/notices/<no>/delete")
+def delete_notice(no):
+    if read_only():
+        return jsonify(READ_ONLY_MESSAGE)
+    with NOTICE_LOCK:
+        deleted, failed = with_notices(lambda notice: notice.delete_one({"_id": no}).deleted_count)
+    if failed:
+        return failed
+    if not deleted:
+        return jsonify({"error": f"없는 공지입니다. ({no})"}), 404
+    return jsonify({"ok": True})
+
+
 # ---- the web app ------------------------------------------------------------
 
 def site():
