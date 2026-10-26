@@ -1,0 +1,654 @@
+/* Classic Windows (WinForms) look, following CLIB's main window */
+:root {
+  --control: #f0f0f0;
+  --window: #ffffff;
+  --text: #000000;
+  --muted: #555555;
+  --border: #adadad;
+  --border-dark: #7a7a7a;
+  --grid-line: #d9d9d9;
+  --highlight: #0078d7;
+  --highlight-text: #ffffff;
+  --hover: #e5f1fb;
+  --hover-border: #0078d7;
+  --tabstrip: #bfd3eb;
+  --tab-active: #e3ecf7;
+  --workspace: #a0a0a0;
+  --navy: #2b2e8c;
+  --font: "Malgun Gothic", "맑은 고딕", "Apple SD Gothic Neo", "Gulim", "굴림", sans-serif;
+  color-scheme: light;
+}
+
+* { box-sizing: border-box; }
+
+html, body { height: 100%; overflow: hidden; }
+
+body {
+  margin: 0;
+  background: var(--control);
+  color: var(--text);
+  font: 12px/1.4 var(--font);
+  overflow: hidden;
+}
+
+button, input, select { font: inherit; color: inherit; }
+
+:focus-visible { outline: 1px dotted #000; outline-offset: 1px; }
+
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: 100dvh;
+}
+
+/* ---- tab strip ---- */
+
+.tabstrip {
+  display: flex;
+  align-items: stretch;
+  background: var(--tabstrip);
+  min-height: 34px;
+  padding-left: 6px;
+}
+
+.tabs {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.tab {
+  padding: 4px 18px 3px;
+  border: 0;
+  background: transparent;
+  font-size: 15px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.tab:hover { background: rgba(255, 255, 255, .35); }
+.tab[aria-selected="true"] { background: var(--tab-active); }
+
+.help {
+  flex: none;
+  align-self: center;
+  width: 26px;
+  height: 26px;
+  margin: 0 12px;
+  border-radius: 50%;
+  border: 1px solid #3a7d3a;
+  background: radial-gradient(circle at 35% 30%, #d6f5a8, #6cbf3a 60%, #3f8f22);
+  color: #fff;
+  font: 700 16px/1 Arial, sans-serif;
+  text-shadow: 0 1px 1px #2f6b18;
+  cursor: pointer;
+}
+
+/* ---- toolbar ---- */
+
+.toolbar {
+  display: flex;
+  align-items: stretch;
+  min-height: 58px;
+  padding: 0 5px;
+  overflow-x: auto;
+  background: linear-gradient(#fdfeff 0%, #eaf2fb 40%, #d3e3f5 52%, #e7f0fa 100%);
+  border-bottom: 1px solid #9fb6d3;
+  position: relative;
+  z-index: 3;
+}
+
+.tool { position: relative; display: flex; }
+
+.tool-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  min-width: 64px;
+  margin: 1px 0;
+  padding: 2px 6px;
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+}
+.tool-btn:hover, .tool.open .tool-btn {
+  background: linear-gradient(#f5faff, #d9ebfc);
+  border-color: #8db2e3;
+}
+.tool-btn.active {
+  background: linear-gradient(#dcebfc, #c1dbf7);
+  border-color: #7da2ce;
+}
+.tool-btn svg { display: block; }
+.tool-label {
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: -.02em;
+  white-space: nowrap;
+}
+.caret { font-size: 11px; margin-left: 2px; font-weight: 400; }
+
+.sep {
+  flex: none;
+  width: 1px;
+  margin: 6px 3px;
+  background: #9fb6d3;
+  box-shadow: 1px 0 #fff;
+}
+
+/* Positioned by JS, since the toolbar clips overflow when it scrolls */
+.dropdown {
+  display: none;
+  position: fixed;
+  min-width: 170px;
+  padding: 2px;
+  background: #f2f2f2;
+  border: 1px solid #ccc;
+  box-shadow: 2px 2px 3px rgba(0, 0, 0, .25);
+  z-index: 50;
+}
+.tool.open .dropdown { display: block; }
+.dropdown button {
+  display: block;
+  width: 100%;
+  padding: 4px 24px 4px 28px;
+  border: 1px solid transparent;
+  background: none;
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.dropdown button:hover, .dropdown button:focus-visible {
+  background: #91c9f7;
+  border-color: #91c9f7;
+  outline: none;
+}
+
+/* ---- workspace ---- */
+
+.workspace {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  background: var(--workspace);
+  overflow: hidden;
+}
+
+.splash {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: var(--navy);
+  text-align: center;
+  padding: 16px;
+}
+.splash p { margin: 0; font-weight: 700; font-size: 14px; }
+.splash .muted { color: #3c3f6e; font-weight: 400; font-size: 12px; }
+.logo {
+  display: flex;
+  align-items: center;
+  font: 900 64px/1 "Arial Black", Arial, sans-serif;
+  letter-spacing: -.02em;
+}
+.logo .ring {
+  display: grid;
+  place-items: center;
+  width: 84px;
+  height: 84px;
+  margin-right: -4px;
+  border-radius: 50%;
+  background: var(--navy);
+  color: var(--workspace);
+  font-size: 66px;
+}
+.logo small {
+  font: 700 18px Arial, sans-serif;
+  margin-left: 6px;
+  vertical-align: top;
+}
+
+.view {
+  position: absolute;
+  inset: 0;
+  background: var(--control);
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+}
+
+.statusbar {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 2px 8px;
+  background: var(--control);
+  border-top: 1px solid #d7d7d7;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+/* ---- screen content ---- */
+
+.screen {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-height: 0;
+  padding: 8px;
+}
+
+.command-row { display: flex; flex-wrap: wrap; gap: 4px; }
+
+.options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin: 0;
+  padding: 4px 10px 6px;
+  border: 1px solid #dcdcdc;
+}
+.options legend { padding: 0 3px; color: var(--navy); }
+.options label { display: inline-flex; align-items: center; gap: 4px; cursor: pointer; }
+
+.tables {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+  min-height: 0;
+}
+
+.grid-box {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 0;
+  min-height: 170px;
+}
+
+.grid-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 10px;
+  padding-bottom: 4px;
+}
+.grid-title { font-weight: 700; color: var(--navy); display: flex; gap: 8px; align-items: baseline; }
+.grid-title .count { font-weight: 400; color: var(--muted); }
+.grid-tools { display: flex; gap: 4px; align-items: center; }
+
+.btn {
+  min-height: 23px;
+  padding: 1px 12px;
+  border: 1px solid var(--border);
+  border-radius: 0;
+  background: #e1e1e1;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.btn:hover { background: var(--hover); border-color: var(--hover-border); }
+.btn:active { background: #cce4f7; border-color: #005499; }
+.btn.mini { min-height: 19px; padding: 0 8px; }
+/* Not ported yet: greyed out like a disabled WinForms control */
+.btn:disabled, .btn:disabled:hover { background: var(--control); border-color: #bfbfbf; color: #a0a0a0; cursor: default; }
+.tool-btn:disabled, .tool-btn:disabled:hover { background: none; border-color: transparent; color: #a0a0a0; cursor: default; }
+.tool-btn:disabled svg { opacity: .35; filter: grayscale(1); }
+.tab:disabled, .tab:disabled:hover { background: none; color: #8a96a8; cursor: default; }
+.dropdown button:disabled, .dropdown button:disabled:hover { background: none; color: #a0a0a0; cursor: default; }
+
+.textbox {
+  width: 160px;
+  height: 23px;
+  padding: 1px 4px;
+  border: 1px solid var(--border-dark);
+  border-radius: 0;
+  background: var(--window);
+}
+.textbox:hover { border-color: #000; }
+.textbox:focus { border-color: var(--highlight); outline: none; }
+
+/* DataGridView / ListView */
+.grid {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  background: var(--window);
+  border: 1px solid #828790;
+}
+
+table {
+  border-collapse: separate;
+  border-spacing: 0;
+  min-width: 100%;
+  font-variant-numeric: tabular-nums;
+}
+th, td {
+  padding: 3px 6px;
+  white-space: nowrap;
+  text-align: left;
+  border-right: 1px solid var(--grid-line);
+  border-bottom: 1px solid var(--grid-line);
+}
+th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: linear-gradient(#ffffff, #f1f2f4);
+  border-right-color: #e2e3e6;
+  border-bottom-color: #d5d5d5;
+  font-weight: 400;
+}
+th .sort {
+  all: unset;
+  cursor: pointer;
+  display: inline-flex;
+  gap: 3px;
+  align-items: center;
+}
+th .sort:focus-visible { outline: 1px dotted #000; }
+th:hover { background: linear-gradient(#f3f9fe, #dcecfc); }
+.arrow { font-size: 8px; color: #6d6d6d; }
+
+tbody tr:hover td { background: #eaf3fc; }
+tbody tr.selected td { background: var(--highlight); color: var(--highlight-text); }
+tbody tr.selected .btn { color: var(--text); }
+
+td.num { text-align: right; }
+th.c-check, td.c-check { width: 30px; text-align: center; padding: 0 4px; }
+th.c-button, td.c-button, th.c-image, td.c-image { text-align: center; }
+td.empty { text-align: center; color: var(--muted); padding: 20px; }
+input[type="checkbox"], input[type="radio"] { margin: 0; width: 13px; height: 13px; accent-color: var(--highlight); }
+
+td.c-image svg {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  vertical-align: middle;
+}
+td.c-image.on { color: #107c10; }
+td.c-image.off { color: #c50f1f; }
+tr.selected td.c-image { color: #fff; }
+
+.placeholder {
+  margin: 8px 0;
+  padding: 24px;
+  border: 1px dashed var(--border);
+  background: var(--window);
+  color: var(--muted);
+  text-align: center;
+}
+
+/* ---- dialogs ---- */
+
+.dialog-layer { position: fixed; inset: 0; pointer-events: none; z-index: 20; }
+/* Modal like ShowDialog(): blocks clicks to the main window without dimming it */
+.dialog-layer.active { pointer-events: auto; }
+
+.window {
+  position: fixed;
+  display: flex;
+  flex-direction: column;
+  max-width: calc(100vw - 8px);
+  max-height: calc(100dvh - 8px);
+  background: var(--control);
+  border: 1px solid #1883d7;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, .08), 0 8px 24px rgba(0, 0, 0, .3);
+}
+
+.titlebar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 31px;
+  flex: none;
+  padding-left: 10px;
+  background: #fff;
+  font-size: 12px;
+  cursor: default;
+  user-select: none;
+  touch-action: none;
+}
+.titlebar .close {
+  width: 46px;
+  height: 100%;
+  border: 0;
+  background: transparent;
+  font-size: 13px;
+  cursor: pointer;
+}
+.titlebar .close:hover { background: #e81123; color: #fff; }
+
+.window-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+.window-body .screen { overflow: auto; }
+.window-foot {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 8px 8px;
+}
+
+.msgbox { width: 360px; height: auto; }
+.msg-body { display: flex; gap: 12px; align-items: flex-start; padding: 22px 18px; background: #fff; }
+.msg-body p { margin: 2px 0 0; }
+.msg-icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #1c63c7;
+  color: #fff;
+  font: italic 700 18px Georgia, serif;
+}
+.msg-foot { display: flex; justify-content: flex-end; padding: 10px 12px; }
+.msg-foot .btn { min-width: 75px; }
+
+/* ---- narrow screens ---- */
+
+@media (max-width: 760px) {
+  .tab { padding: 4px 12px 3px; font-size: 14px; }
+  .tool-btn { min-width: 58px; }
+  .window { left: 4px !important; width: calc(100vw - 8px) !important; }
+  .textbox { width: 110px; }
+}
+
+/* ---- designer-positioned forms (대출 …) ---- */
+
+.form {
+  --form-back: #f0f0f0;
+  position: absolute;
+  inset: 0;
+  background: var(--form-back);
+  font: 12px "Gulim", "굴림", var(--font);
+  overflow: auto;
+}
+.form.split {
+  display: flex;
+  gap: 11px;
+  padding: 4px 5px 0 3px;
+}
+.form.bold-form { font-weight: 700; }
+.window-body { position: relative; }
+.form-left {
+  flex: 1;
+  min-width: 300px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.form-right { position: relative; flex: none; min-height: 460px; }
+
+.ctl { position: absolute; margin: 0; }
+.ctl[hidden] { display: none !important; }
+
+.ctl.panel.stretch { position: relative; min-height: 150px; }
+.ctl.label { white-space: nowrap; line-height: 13px; }
+.ctl.label.bold, .ctl.btn.bold { font-weight: 700; }
+/* CLIB's labels are 굴림 9pt bold at 96 dpi; panel captions sit a little larger */
+.form-BookLent .stretch > .label { font-size: 13px; }
+
+.form .textbox {
+  height: auto;
+  padding: 1px 3px;
+  font: inherit;
+  border: 1px solid var(--border-dark);
+  background: var(--window);
+}
+.form textarea.textbox { resize: none; }
+.form .textbox.ro { background: var(--control); color: #000; }
+.form .textbox.ro:focus { border-color: var(--border-dark); }
+.form .ctl.btn { padding: 0 4px; font: inherit; }
+.form .ctl.btn.bold { font-weight: 700; }
+
+/* GroupBox: the frame starts 7px down and the caption covers the top line */
+.ctl.group::after {
+  content: "";
+  position: absolute;
+  inset: 7px 0 0;
+  border: 1px solid #dcdcdc;
+  pointer-events: none;
+}
+.group-caption {
+  position: absolute;
+  left: 7px;
+  top: 0;
+  padding: 0 2px;
+  line-height: 14px;
+  background: var(--form-back);
+  z-index: 1;
+}
+
+.ctl.list .grid { position: absolute; inset: 0; border: 0; }
+.form .ctl.list { background: var(--window); }
+table.fit { table-layout: fixed; width: 100%; }
+table.fit th, table.fit td { overflow: hidden; text-overflow: ellipsis; }
+.form th { text-align: center; }
+
+.msg-body p { white-space: pre-line; }
+.msg-icon.question { background: #1c63c7; font-style: normal; font-family: Arial, sans-serif; }
+.msg-foot { gap: 8px; }
+/* ListView 순번 columns are centred in CLIB (TextAlign = Center) */
+table.fit td:first-child { text-align: center; }
+
+/* ---- more WinForms controls ---- */
+
+.form .combo {
+  height: auto;
+  padding: 0 2px;
+  font: inherit;
+  border: 1px solid var(--border-dark);
+  background: var(--window);
+}
+.form .combo:disabled, .form .textbox:disabled { background: var(--control); color: #6d6d6d; border-color: #bfbfbf; }
+.ctl.choice { display: flex; align-items: center; gap: 4px; white-space: nowrap; }
+
+/* TabControl: tab buttons on top, white pages (UseVisualStyleBackColor) */
+.ctl.tabs .tab-strip { position: absolute; left: 2px; top: 0; height: 22px; display: flex; z-index: 1; }
+.tab-btn {
+  height: 21px;
+  margin-top: 1px;
+  margin-right: -1px;
+  padding: 0 14px;
+  border: 1px solid #adadad;
+  border-bottom: 0;
+  background: #f0f0f0;
+  font: inherit;
+  cursor: pointer;
+}
+.tab-btn[aria-selected="true"] { height: 23px; margin-top: 0; background: #fff; position: relative; z-index: 1; }
+.tab-page { position: absolute; background: #fff; border: 1px solid #adadad; }
+.tab-page .ctl.panel { background: transparent; }
+
+/* 도서관리 row colours (index_panel legend) */
+tbody tr.row-missing td { background: bisque; }
+tbody tr.row-unsaved td { background: lightgray; }
+tbody tr.selected.row-missing td, tbody tr.selected.row-unsaved td { background: var(--highlight); }
+
+/* 도서관리: book list on the left, fixed-width editor column on the right */
+.bm-left { position: absolute; left: 0; top: 0; bottom: 0; right: 605px; min-width: 330px; }
+.bm-right { position: absolute; top: 0; bottom: 0; right: 13px; width: 586px; }
+.form-BookManage { min-width: 940px; min-height: 596px; }
+/* 저장된 도서 불러오기: several 등록번호, one per line */
+.form-BookManage textarea.load-barcodes { resize: none; line-height: 17px; padding: 2px 4px; white-space: pre; overflow-y: auto; }
+.form.bold-form table { font-weight: 400; }
+.form-BookManage .ctl.list { border: 1px solid #828790; }
+.form-BookManage .tab-page textarea { font: 13px/1.5 "GulimChe", "굴림체", monospace; white-space: pre; }
+.form-SearchMarc .ctl.list { border: 1px solid #828790; }
+
+.ctl.picture { overflow: hidden; }
+/* The whole picture, centred (CLIB scales a member's photo to fit its box) */
+.ctl.picture img { width: 100%; height: 100%; object-fit: contain; display: block; }
+/* RadioButton with Appearance.Button */
+.ctl.choice.push { justify-content: center; border: 1px solid var(--border); background: #e1e1e1; cursor: pointer; }
+.ctl.choice.push input { position: absolute; opacity: 0; pointer-events: none; }
+.ctl.choice.push:hover { background: var(--hover); border-color: var(--hover-border); }
+.ctl.choice.push:has(input:checked) { background: #cce4f7; border-color: #005499; }
+.ctl.choice.push:has(input:focus-visible) { outline: 1px dotted #000; outline-offset: -4px; }
+
+/* 월별 lists: one group row per month */
+tbody tr.row-group td { background: #e8eef7; font-weight: 700; }
+/* 회원증 이용안내: plain text on the white card panel */
+.form .textbox.flat { border: 0; background: transparent; text-align: center; resize: none; overflow: hidden; }
+.form textarea.textbox.flat { text-align: left; line-height: 1.55; }
+.form-UserCardPrint .textbox.flat { font-weight: 700; }
+.ctl.picture svg { width: 100%; height: 100%; display: block; }
+.ctl.picture img[hidden] { display: none; }
+
+/* Editable DataGridView cells (settings grids) */
+td.edit { padding: 0; }
+td.edit input { width: 100%; border: 0; padding: 3px 6px; font: inherit; background: transparent; text-align: center; }
+td.edit input:focus { outline: 1px solid var(--highlight); background: #fff; }
+tr.selected td.edit input { color: #fff; }
+tr.selected td.edit input:focus { color: #000; }
+/* Numbered row headers (RowHeadersVisible) */
+th.row-head { position: sticky; left: 0; z-index: 2; min-width: 34px; width: 34px; text-align: left; font-weight: 400; background: linear-gradient(#fff, #f1f2f4); border-right-color: #d5d5d5; }
+thead th.row-head { z-index: 3; }
+tbody tr.selected th.row-head { background: #d9e8f7; }
+
+/* 환경설정 tabs: option panels sit on the white tab page */
+.option-host > .form { --form-back: #fff; }
+/* 이용현황 row colours: overdue loans Beige, attachments still out Bisque */
+tbody tr.row-late td { background: beige; }
+tbody tr.row-attach td { background: bisque; }
+.lent-stats-grid .ctl.list, .lent-stats-grid > .grid { position: absolute; inset: 0; }
+
+/* Borderless notice (LentMsg): no title bar, the form's own background shows round its panel */
+.window.notice { border: 0; box-shadow: 0 4px 16px rgba(0, 0, 0, .35); }
+
+/* Settings grids (대출기간설정, 회원등급, 소장위치): compact rows so the usual lists fit
+   without a scroll bar */
+.form-LentOption th, .form-LentOption td, .form-UserOption th, .form-UserOption td,
+.form-BookOption th, .form-BookOption td { padding-top: 1px; padding-bottom: 1px; }
+.form-LentOption td.edit input, .form-UserOption td.edit input, .form-BookOption td.edit input { padding-top: 1px; padding-bottom: 1px; }
+
+/* 클라우드 다운로드: progress per table */
+.cloud-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.cloud-table th, .cloud-table td { border: 1px solid #d5d5d5; padding: 4px 6px; height: 26px; }
+.cloud-table th { background: #f0f0f0; font-weight: normal; }
+.cloud-table td.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+/* ProgressBar (파일로 저장) */
+.ctl.progress { appearance: none; border: 1px solid #bcbcbc; background: #e6e6e6; }
+.ctl.progress::-webkit-progress-bar { background: #e6e6e6; }
+.ctl.progress::-webkit-progress-value { background: #06b025; }
+.ctl.progress::-moz-progress-bar { background: #06b025; }
+/* 연체관리 / 회원번호관리 / 삭제된 회원번호 관리: grids with a border, like DataGridView */
+.form-BookDelay .ctl.list, .form-UserCodeDlg .ctl.list, .form-DeleteUsers .ctl.list { border: 1px solid #828790; }
+/* 등급별 회원번호관리: numbers outside the grade's 구분기호 */
+tbody tr.row-bisque td { background: bisque; }

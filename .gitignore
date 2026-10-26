@@ -4,3 +4,7 @@ cert.pem
 key.pem
 __pycache__
 toDelete
+# CLIB Web (server/, web/, web-self/, tools/): secrets, local settings and the venv
+server/config.json
+server/clib_settings.json
+server/.venv/
