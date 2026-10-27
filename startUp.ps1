@@ -6,11 +6,9 @@ cd c:\clib\libServer
 git pull origin
 copy keyInput.txt keyInput.py
 
-Echo "Download Datebase"
-Echo "Assume that checkout/return happens only in this system"
-python3 downloadDb.py
-
 Echo "Start CLIB Web server"
+# As it starts, the server backs up the database and then downloads it from the cloud
+# (checkouts and returns happen only on this system); its page shows the progress
 Start-Process -FilePath "c:\clib\libServer\server\run.bat" -WorkingDirectory "c:\clib\libServer\server" -WindowStyle Minimized
 
 Echo "Open CLIB page"

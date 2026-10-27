@@ -40,6 +40,7 @@
     cloud: `<path d="M9 22a6 6 0 0 1-.6-12 8 8 0 0 1 15.3 2.2A5 5 0 0 1 23 22z" fill="#dff0ff" stroke="#1d4f91"/>` + arrow("M16 13v8h-3l3 5 3-5h-3", "#5cb85c"),
     cloudUp: `<path d="M9 22a6 6 0 0 1-.6-12 8 8 0 0 1 15.3 2.2A5 5 0 0 1 23 22z" fill="#dff0ff" stroke="#1d4f91"/>` + arrow("M16 27v-8h-3l3-5 3 5h-3", "#f0ad4e"),
     clock: `<circle cx="16" cy="16" r="12" fill="#fff" stroke="#3b7dd8" stroke-width="2.5"/><path d="M16 8v8l6 3" stroke="#1b2430" stroke-width="2.2" fill="none"/>`,
+    power: `<circle cx="16" cy="17" r="10" fill="none" stroke="#c9302c" stroke-width="3" stroke-dasharray="52 11" stroke-dashoffset="-37"/><path d="M16 4v12" stroke="#c9302c" stroke-width="3" stroke-linecap="round"/>`,
     board: `<rect x="3" y="5" width="26" height="19" rx="2" fill="#3a7d3a" stroke="#7a5a3a" stroke-width="2"/><path d="M8 11h12M8 15h16M8 19h9" stroke="#fff" stroke-opacity=".85" stroke-width="1.5"/><path d="M10 24l-3 5M22 24l3 5" stroke="#7a5a3a" stroke-width="2"/>`,
   };
 

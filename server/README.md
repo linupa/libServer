@@ -26,6 +26,14 @@ server process listens on two ports, each serving its own web app over the same 
 | <http://127.0.0.1:8081/> | the self-service kiosk (not ported yet) | `web-self/` | CLIB_Self.exe |
 
 Writes from both go through the same lock, so a kiosk loan and a desk return can't collide.
+
+### Starting and stopping
+
+As it starts, the server backs up the database (CLIB's `yyyyMMdd_ON.bak` safety copy, and
+자동백업 when due) and then downloads it from the cloud; the page shows a banner until that is
+done. The 종료 tab backs up (`_OFF.bak`), uploads to the cloud and then stops the server. A
+failed backup stops either sequence before anything is replaced or sent, and a failed upload
+leaves the server running so 종료 can be tried again. Stopping the server with Ctrl+C only backs up.
 The server refuses to start if either port is already taken (Windows would otherwise let a
 second copy bind the same port). Opening `web/index.html` straight from disk still works and
 uses the sample data.
@@ -364,6 +372,8 @@ libServer checkout needs no `config.json`.
 | `POST /api/cloud/download` `{test}` | start a download in the background; `test: true` only compares |
 | `POST /api/cloud/upload` `{test, bookOnly}` | make the cloud match this server; `bookOnly` sends only books and MARC |
 | `GET /api/cloud` | progress of the current job: mode, state, phase, startedAt / finishedAt / elapsed (seconds), and per table local / count / downloaded / add / change / delete / applied; `last`: the time of the last real download and upload (kept in `clib_settings.json`) |
+| `GET /api/sequence` | the start or 종료 sequence: kind start / stop, state running / done / error / stopped, step backup / download / upload, the backup file, `canStop` |
+| `POST /api/shutdown` | 종료: back up, upload, then stop the server (only when started by `run.bat`) |
 | `GET /api/notices` | 게시판: the cloud's `notice` collection, newest first; `[{no, title, writeDate, content}]` |
 | `POST /api/notices` `{title, writeDate, content}` | add a notice, numbered after the highest `_id` |
 | `POST /api/notices/<no>` `{title, writeDate, content}` | change notice `no` |

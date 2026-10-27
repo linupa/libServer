@@ -11,6 +11,7 @@ Reads get their own connection, which is rolled back. Lending, returns and renew
 Set "readOnly": true in config.json to refuse all writes.
 """
 import threading
+import time
 from contextlib import contextmanager
 from datetime import date, datetime
 from pathlib import Path
@@ -464,6 +465,7 @@ def cloud_job(mode, test, book_only):
             result = cloud.download(conn, status, WRITE_LOCK, test)
             if not test:
                 conn.commit()
+                last_daily["date"] = None  # the downloaded data gets CLIB's daily checks again
         else:
             # The cloud has no transaction: an upload that fails midway can be run again
             result = cloud.upload(conn, status, test, book_only)
@@ -490,19 +492,29 @@ def cloud_job(mode, test, book_only):
         conn.close()
 
 
+def begin_cloud_job(mode, test=False, book_only=False):
+    """Mark a cloud job as running (cloud_job then runs it); an error message if one already is."""
+    with CLOUD_LOCK:
+        if CLOUD.get("state") == "running":
+            what = "다운로드" if CLOUD.get("mode") == "download" else "업로드"
+            return f"이미 클라우드 {what}가 진행중입니다."
+        CLOUD.clear()
+        CLOUD.update(state="running", mode=mode, test=test, bookOnly=book_only, phase="연결 중",
+                     startedAt=now_text(),
+                     tables={name: {} for name in CLOUD_TABLES})
+    return None
+
+
 def start_cloud_job(mode):
     body = request.get_json(silent=True) or {}
     test = bool(body.get("test"))
     if mode == "download" and not test and read_only():
         return jsonify(READ_ONLY_MESSAGE)
-    with CLOUD_LOCK:
-        if CLOUD.get("state") == "running":
-            what = "다운로드" if CLOUD.get("mode") == "download" else "업로드"
-            return jsonify({"error": f"이미 클라우드 {what}가 진행중입니다."}), 409
-        CLOUD.clear()
-        CLOUD.update(state="running", mode=mode, test=test, bookOnly=bool(body.get("bookOnly")), phase="연결 중",
-                     startedAt=now_text(),
-                     tables={name: {} for name in CLOUD_TABLES})
+    if SEQUENCE.get("state") == "running":
+        return jsonify({"error": SEQUENCE_BUSY}), 409
+    busy = begin_cloud_job(mode, test, bool(body.get("bookOnly")))
+    if busy:
+        return jsonify({"error": busy}), 409
     threading.Thread(target=cloud_job, args=(mode, test, bool(body.get("bookOnly"))), daemon=True).start()
     return jsonify({"ok": True})
 
@@ -531,6 +543,89 @@ def cloud_status():
     saved = settings_store.overlay()
     status["last"] = {mode: saved.get(key, "") for mode, key in CLOUD_LAST.items()}
     return jsonify(status)
+
+
+# ---- starting and stopping: back up, then download (start) or upload (stop) ----------
+
+# The server runs the start sequence as it starts; 종료 runs the stop sequence and then stops
+# the server. GET /api/sequence shows where it is: state running / done / error / stopped,
+# step backup / download / upload.
+SEQUENCE = {"state": "idle"}
+SEQUENCE_LOCK = threading.Lock()
+SEQUENCE_BUSY = "시작 또는 종료 작업(백업, 클라우드 동기화)이 진행중입니다."
+STEP_NAMES = {"backup": "데이터 백업", "download": "클라우드 다운로드", "upload": "클라우드 업로드"}
+# Set by __main__: stops the web servers (none when run some other way)
+stop_server = None
+
+
+def run_sequence(kind):
+    """kind "start": back up (CLIB's _ON copy, and 자동백업 when due), then download from the
+    cloud. "stop": back up (_OFF), then upload. A failed backup stops the sequence, so the data
+    is never replaced or sent without a copy. Returns True when every step went through."""
+    trigger = "start" if kind == "start" else "stop"
+    mode = "download" if kind == "start" else "upload"
+    with SEQUENCE_LOCK:
+        if SEQUENCE.get("state") == "running":
+            return False
+        SEQUENCE.clear()
+        SEQUENCE.update(kind=kind, state="running", step="backup", startedAt=now_text())
+
+    def fail(message):
+        SEQUENCE.update(state="error", error=message, finishedAt=now_text())
+        app.logger.warning("%s sequence: %s", kind, message)
+        return False
+
+    try:
+        SEQUENCE["backup"] = backup.default_backup(trigger).name
+    except Exception as e:
+        return fail(f"백업하지 못해 {STEP_NAMES[mode]}를 하지 않았습니다.\n{e}")
+    try:  # 자동백업 is extra; its failure doesn't stop anything
+        if backup.auto_backup_due(trigger):
+            backup.auto_backup()
+    except Exception as e:
+        app.logger.warning("auto backup (%s) failed: %s", trigger, e)
+
+    if mode == "download" and read_only():
+        SEQUENCE.update(state="done", skipped="읽기 전용이라 다운로드하지 않았습니다.", finishedAt=now_text())
+        return True
+    SEQUENCE["step"] = mode
+    busy = begin_cloud_job(mode)
+    if busy:
+        return fail(busy)
+    cloud_job(mode, False, False)
+    if CLOUD.get("state") != "done":
+        return fail(f"{STEP_NAMES[mode]}에 실패했습니다.\n{CLOUD.get('error') or ''}".strip())
+    SEQUENCE.update(state="done", finishedAt=now_text())
+    return True
+
+
+def stop_sequence():
+    if run_sequence("stop"):
+        SEQUENCE["state"] = "stopped"
+        time.sleep(2)  # let the 종료 dialog see it before the server goes
+        stop_server()
+
+
+@app.get("/api/sequence")
+def sequence_status():
+    status = dict(SEQUENCE, canStop=stop_server is not None)
+    if status.get("state") == "running" and status.get("step") in ("download", "upload"):
+        status["phase"] = CLOUD.get("phase")
+    return jsonify(status)
+
+
+@app.post("/api/shutdown")
+def shutdown():
+    """종료: back up, upload to the cloud, then stop the server. The server keeps running
+    when a step fails, so it can be tried again."""
+    if stop_server is None:
+        return jsonify({"error": "이 서버는 화면에서 종료할 수 없습니다. (run.bat으로 실행된 서버가 아닙니다)"})
+    if SEQUENCE.get("state") == "running":
+        return jsonify({"error": SEQUENCE_BUSY}), 409
+    if CLOUD.get("state") == "running":
+        return jsonify({"error": "클라우드 작업이 진행중입니다. 끝난 뒤에 종료해주세요."}), 409
+    threading.Thread(target=stop_sequence, daemon=True).start()
+    return jsonify({"ok": True})
 
 
 # ---- 게시판: the cloud's notices ------------------------------------------------
@@ -651,12 +746,15 @@ if __name__ == "__main__":
         print(f" * {root.name}: http://127.0.0.1:{port}/", flush=True)
     for server in servers[1:]:
         threading.Thread(target=server.serve_forever, daemon=True).start()
-    # CLIB backs up when it starts and exits (DefaultBackup, and 자동백업 when due); so does the server
-    threading.Thread(target=backup.run_triggers, args=("start",), daemon=True).start()
+    stop_server = lambda: [server.shutdown() for server in servers]
+    # Back up and download from the cloud, as CLIB backs up when it starts (DefaultBackup)
+    threading.Thread(target=run_sequence, args=("start",), daemon=True).start()
     try:
         servers[0].serve_forever()
     except KeyboardInterrupt:
         pass
     finally:
-        print(" * 종료 전 백업 중…", flush=True)
-        backup.run_triggers("stop")
+        # 종료 backed up already; Ctrl+C only backs up, as CLIB does when it exits
+        if SEQUENCE.get("state") != "stopped":
+            print(" * 종료 전 백업 중…", flush=True)
+            backup.run_triggers("stop")

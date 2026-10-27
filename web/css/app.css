@@ -652,3 +652,18 @@ tbody tr.row-attach td { background: bisque; }
 .form-BookDelay .ctl.list, .form-UserCodeDlg .ctl.list, .form-DeleteUsers .ctl.list, .form-BoardFrm .ctl.list { border: 1px solid #828790; }
 /* 등급별 회원번호관리: numbers outside the grade's 구분기호 */
 tbody tr.row-bisque td { background: bisque; }
+
+/* ---- start / stop sequence (screens/session.js) ---- */
+
+.session-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 10px;
+  background: #fff8d6;
+  border-bottom: 1px solid #e0c96b;
+  font-size: 12px;
+}
+.session-banner.done { background: #e3f4e1; border-color: #8fc98a; }
+.session-banner.error { background: #fbe3e2; border-color: #d9827f; white-space: pre-line; }
+.session-banner .msg { flex: 1; }

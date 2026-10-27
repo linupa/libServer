@@ -76,6 +76,10 @@ window.CLIB_MENUS = {
     { id: "board", label: "게시판", items: [
       { label: "게시판", icon: "board", view: "BoardFrm" },
     ] },
+    // Not in CLIB: back up, upload to the cloud and stop the server (server/app.py run_sequence)
+    { id: "shutdown", label: "종료", items: [
+      { label: "종료", icon: "power", dialog: "Shutdown" },
+    ] },
   ],
 
   // Dialogs a view or dialog opens from its own buttons, from the `new XxxDlg(` callers
