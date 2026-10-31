@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>도서자가대출반납</title>
+  <link rel="stylesheet" href="css/kiosk.css">
+</head>
+<body>
+  <!-- CLIB_Self.exe as a web page: one full-screen window (Form1) whose panel shows one of
+       Home, LentBook, ReturnBook and SearchBook at a time. Served on port 8081, using the
+       same /api as the library's app on port 8080. -->
+
+  <section id="home" class="screen">
+    <img class="menu-title" src="img/menu-title.png" alt="도서자가대출반납">
+    <img class="menu-subtitle" src="img/menu-subtitle.png" alt="메뉴를 선택하세요">
+    <div class="menu">
+      <button type="button" data-go="lend"><img src="img/menu-lend.png" alt="대출"></button>
+      <button type="button" data-go="return"><img src="img/menu-return.png" alt="반납"></button>
+      <button type="button" data-go="search"><img src="img/menu-search.png" alt="검색"></button>
+    </div>
+  </section>
+
+  <section id="lend" class="screen circ" hidden>
+    <img class="title" src="img/title-lend.png" alt="도서대출">
+    <button type="button" class="home"><img src="img/home.png" alt="초기화면으로"></button>
+    <div class="prompt">
+      <p class="info"></p>
+      <input class="code" autocomplete="off" spellcheck="false" aria-label="번호 입력">
+      <button type="button" class="ok">확인</button>
+      <p class="info2" hidden>(키보드 입력예시. EM00000001 또는 EM1 입력)</p>
+    </div>
+    <dl class="user" hidden>
+      <dt>회원번호 :</dt><dd data-f="userId"></dd><dt>최대대출권수 :</dt><dd data-f="maxLend"></dd>
+      <dt>회원명 :</dt><dd data-f="userName"></dd><dt>현재대출권수 :</dt><dd data-f="lentCount"></dd>
+      <dt>대출기간 :</dt><dd data-f="lendDays"></dd>
+    </dl>
+    <div class="list" hidden></div>
+  </section>
+
+  <section id="return" class="screen circ" hidden>
+    <img class="title" src="img/title-return.png" alt="도서반납">
+    <button type="button" class="home"><img src="img/home.png" alt="초기화면으로"></button>
+    <div class="prompt">
+      <p class="info"></p>
+      <input class="code" autocomplete="off" spellcheck="false" aria-label="번호 입력">
+      <button type="button" class="ok">확인</button>
+      <p class="info2">(도서번호입력 예시. EM00000001 또는 EM1 입력)</p>
+    </div>
+    <dl class="user narrow" hidden>
+      <dt>회원번호 :</dt><dd data-f="userId"></dd><dt>최대대출권수 :</dt><dd data-f="maxLend"></dd>
+      <dt>회원명 :</dt><dd data-f="userName"></dd><dt>현재대출권수 :</dt><dd data-f="lentCount"></dd>
+      <dt>대출기간 :</dt><dd data-f="lendDays"></dd>
+    </dl>
+    <div class="list" hidden></div>
+  </section>
+
+  <section id="search" class="screen" hidden>
+    <img class="title" src="img/title-search.png" alt="도서검색">
+    <button type="button" class="home"><img src="img/home.png" alt="초기화면으로"></button>
+    <div class="search-bar">
+      <label for="search-field">검색구분</label>
+      <select id="search-field">
+        <option>전체</option><option>서명</option><option>저자</option><option>출판사</option>
+        <option>등록번호</option><option>총서명</option><option>발행년도</option>
+      </select>
+      <input id="search-text" autocomplete="off" aria-label="검색어">
+      <button type="button" id="search-go">검색</button>
+      <button type="button" id="search-all">전체도서조회</button>
+    </div>
+    <div class="list results"></div>
+  </section>
+
+  <div id="dialogs"></div>
+  <script src="js/kiosk.js"></script>
+</body>
+</html>
