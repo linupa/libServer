@@ -1,4 +1,4 @@
 flask==3.0.3
 pyodbc==5.2.0
-pymongo==4.10.1
+pymongo==4.18.3
 rsa==4.9
