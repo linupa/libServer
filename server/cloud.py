@@ -14,7 +14,7 @@ Without either, libServer's config.py next to this folder (..\\config.py) is use
 """
 import datetime
 import subprocess
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
 from pathlib import Path
 
 from db import config, rows
@@ -393,10 +393,35 @@ def push(collection, plan, docs, progress):
     progress(100)
 
 
+def pair_returns(history):
+    """checkRentHistory(checkRetDate=True): a checkout (state 1) followed by a return (state 0)
+    of the same book gets the return's time as its return_date. Reservations (2) and other
+    states don't break the pair; a lend of state 4 does, as in libServer. Sets return_date on
+    the entries themselves and gives the ones whose return_date was missing or wrong."""
+    by_book = defaultdict(list)
+    for entry in history:
+        by_book[entry.get("book_id")].append(entry)
+    fixed = []
+    for entries in by_book.values():
+        entries.sort(key=lambda e: e.get("timestamp") or "")
+        rented = None
+        for entry in entries:
+            state = str(entry.get("book_state"))
+            if state not in ("0", "1", "4"):
+                continue
+            if (rented is not None and str(rented.get("book_state")) == "1" and state == "0"
+                    and rented.get("return_date") != entry.get("timestamp")):
+                rented["return_date"] = entry.get("timestamp")
+                fixed.append(rented)
+            rented = entry if state in ("1", "4") else None
+    return fixed
+
+
 def upload(conn, status, test=False, book_only=False):
     """uploadDatabase(): make the cloud match this server's database. Only 대출 rows for
     books that are out or reserved go up (the cloud has no rows for books on the shelf), and
-    대출기록 also goes to the cloud's append-only rentHistory. Changes nothing when test is true."""
+    대출기록 also goes to the cloud's append-only rentHistory, where each returned checkout gets
+    its return_date (as checkDB.py does). Changes nothing when test is true."""
     status["phase"] = "자료 읽는 중"
     local = {}
     for name, coll, table, key, field_map in TABLES:
@@ -432,19 +457,25 @@ def upload(conn, status, test=False, book_only=False):
             plans[name] = compare_cloud(local[name], theirs)
             entry.update(add=len(plans[name][0]), change=len(plans[name][1]), delete=len(plans[name][2]))
 
-        # rentHistory: an append-only copy of the history, matched on time, member, book and state
-        appended = []
+        # rentHistory: an append-only copy of the history, matched on time, member, book and state,
+        # whose checkouts also carry the date they were returned
+        appended, returned = [], []
         if "rentHistory" in local:
             status["phase"] = "rentHistory 비교 중"
-            seen = {(d.get("timestamp"), d.get("user_id"), d.get("book_id"), d.get("book_state"))
-                    for d in cloud_db.rentHistory.find({}, {"timestamp": 1, "user_id": 1, "book_id": 1, "book_state": 1})}
+            history = list(cloud_db.rentHistory.find(
+                {}, {"timestamp": 1, "user_id": 1, "book_id": 1, "book_state": 1, "return_date": 1}))
+            seen = {(d.get("timestamp"), d.get("user_id"), d.get("book_id"), d.get("book_state")) for d in history}
             appended = [{k: v for k, v in d.items() if k != "_id"} for d in local["rentHistory"].values()
                         if (d.get("timestamp"), d.get("user_id"), d.get("book_id"), d.get("book_state")) not in seen]
+            # New entries get their return_date before they go up; entries already in the cloud are updated
+            returned = [d for d in pair_returns(history + appended) if "_id" in d]
             status["tables"]["rentHistory"]["appended"] = len(appended)
+            status["tables"]["rentHistory"]["returned"] = len(returned)
 
         result = {name: {k: status["tables"][name].get(k) for k in ("local", "add", "change", "delete")} for name in plans}
         if "rentHistory" in result:
             result["rentHistory"]["appended"] = len(appended)
+            result["rentHistory"]["returned"] = len(returned)
         if test:
             return result
         for name, coll, *_ in TABLES:
@@ -454,6 +485,10 @@ def upload(conn, status, test=False, book_only=False):
                 push(cloud_db[coll], plans[name], local[name], lambda p, e=entry: e.update(applied=p))
         for i in range(0, len(appended), 100):
             cloud_db.rentHistory.insert_many(appended[i:i + 100])
+        from pymongo import UpdateOne
+        ops = [UpdateOne({"_id": d["_id"]}, {"$set": {"return_date": d["return_date"]}}) for d in returned]
+        for i in range(0, len(ops), 500):
+            cloud_db.rentHistory.bulk_write(ops[i:i + 500], ordered=False)
         return result
     finally:
         client.close()

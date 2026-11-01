@@ -58,7 +58,8 @@
       table.innerHTML = `<table class="cloud-table"><thead><tr><th>자료</th><th>${m.source[0]}</th><th>${m.fetched[0]}</th>
         <th>추가</th><th>변경</th><th>삭제</th><th>적용</th></tr></thead><tbody>${ROWS.map(([k, label]) => {
           const r = t[k] || {};
-          const extra = r.appended ? ` <small>(+${esc(r.appended)} rentHistory)</small>` : "";
+          const extra = r.appended || r.returned ? ` <small>(+${esc(r.appended || 0)} rentHistory${
+            r.returned ? `, 반납일 ${esc(r.returned)}` : ""})</small>` : "";
           return `<tr><td>${label}${extra}</td>${cell(r[m.source[1]])}${cell(r[m.fetched[1]])}${cell(r.add)}${cell(r.change)}${
             cell(r.delete)}${cell(r.applied === undefined ? "" : `${r.applied}%`)}</tr>`;
         }).join("")}</tbody></table>`;
@@ -97,7 +98,8 @@
       if (s.state === "error") return ctx.msgBox(s.error || `${m.verb}에 실패했습니다.`);
       const r = s.result || {};
       const lines = ROWS.filter(([k]) => r[k]).map(([k, label]) =>
-        `${label} : 추가 ${r[k].add}, 변경 ${r[k].change}, 삭제 ${r[k].delete}${r[k].appended ? `, rentHistory 추가 ${r[k].appended}` : ""}`);
+        `${label} : 추가 ${r[k].add}, 변경 ${r[k].change}, 삭제 ${r[k].delete}${r[k].appended ? `, rentHistory 추가 ${r[k].appended}` : ""}${
+          r[k].returned ? `, 반납일 기록 ${r[k].returned}` : ""}`);
       await ctx.msgBox(`${s.test ? "비교 결과입니다. 아무것도 바뀌지 않았습니다." : `${m.verb}를 마쳤습니다.`}\n\n${lines.join("\n")}${
         s.warning ? `\n\n${s.warning}` : ""}`);
     }
