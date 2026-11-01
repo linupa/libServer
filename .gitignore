@@ -4,6 +4,7 @@ cert.pem
 key.pem
 __pycache__
 toDelete
+hkmccBook/*
 # CLIB Web (server/, web/, web-self/, tools/): secrets, local settings and the venv
 server/config.json
 server/clib_settings.json
