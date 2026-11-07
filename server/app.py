@@ -10,6 +10,8 @@ Reads get their own connection, which is rolled back. Lending, returns and renew
 (circulation.py) run one at a time in a transaction that commits only when they succeed.
 Set "readOnly": true in config.json to refuse all writes.
 """
+import os
+import subprocess
 import threading
 import time
 from contextlib import contextmanager
@@ -556,6 +558,9 @@ SEQUENCE_BUSY = "시작 또는 종료 작업(백업, 클라우드 동기화)이 
 STEP_NAMES = {"backup": "데이터 백업", "download": "클라우드 다운로드", "upload": "클라우드 업로드"}
 # Set by __main__: stops the web servers (none when run some other way)
 stop_server = None
+# 컴퓨터도 끄기: Windows turns the PC off this many seconds after 종료; `shutdown /a` cancels it
+POWER_OFF_DELAY = 60
+CAN_POWER_OFF = os.name == "nt"
 
 
 def run_sequence(kind):
@@ -599,8 +604,28 @@ def run_sequence(kind):
     return True
 
 
-def stop_sequence():
+def power_off():
+    """Ask Windows to turn the PC off in POWER_OFF_DELAY seconds. Gives "" or why it couldn't."""
+    try:
+        done = subprocess.run(["shutdown", "/s", "/t", str(POWER_OFF_DELAY), "/c", "CLIB 종료: 컴퓨터를 끕니다."],
+                              capture_output=True, text=True, errors="replace", timeout=15)
+    except (OSError, subprocess.SubprocessError) as e:
+        return str(e)
+    if done.returncode == 0:
+        return ""
+    return (done.stderr or done.stdout).strip() or f"shutdown 명령이 실패했습니다. (코드 {done.returncode})"
+
+
+def stop_sequence(turn_off=False):
+    """종료 after a backup and upload that went through: the PC is turned off first (when asked)
+    so the dialog can tell whether that worked, then the server stops."""
     if run_sequence("stop"):
+        if turn_off:
+            error = power_off()
+            SEQUENCE.update(powerOff="error" if error else "scheduled", powerOffDelay=POWER_OFF_DELAY)
+            if error:
+                SEQUENCE["powerOffError"] = error
+                app.logger.warning("power off: %s", error)
         SEQUENCE["state"] = "stopped"
         time.sleep(2)  # let the 종료 dialog see it before the server goes
         stop_server()
@@ -608,7 +633,7 @@ def stop_sequence():
 
 @app.get("/api/sequence")
 def sequence_status():
-    status = dict(SEQUENCE, canStop=stop_server is not None)
+    status = dict(SEQUENCE, canStop=stop_server is not None, canPowerOff=CAN_POWER_OFF)
     if status.get("state") == "running" and status.get("step") in ("download", "upload"):
         status["phase"] = CLOUD.get("phase")
     return jsonify(status)
@@ -616,15 +641,19 @@ def sequence_status():
 
 @app.post("/api/shutdown")
 def shutdown():
-    """종료: back up, upload to the cloud, then stop the server. The server keeps running
-    when a step fails, so it can be tried again."""
+    """종료: back up, upload to the cloud, then stop the server, and with {"powerOff": true}
+    turn the PC off. The server keeps running (and the PC on) when a step fails, so it can be
+    tried again."""
     if stop_server is None:
         return jsonify({"error": "이 서버는 화면에서 종료할 수 없습니다. (run.bat으로 실행된 서버가 아닙니다)"})
     if SEQUENCE.get("state") == "running":
         return jsonify({"error": SEQUENCE_BUSY}), 409
     if CLOUD.get("state") == "running":
         return jsonify({"error": "클라우드 작업이 진행중입니다. 끝난 뒤에 종료해주세요."}), 409
-    threading.Thread(target=stop_sequence, daemon=True).start()
+    turn_off = bool((request.get_json(silent=True) or {}).get("powerOff"))
+    if turn_off and not CAN_POWER_OFF:
+        return jsonify({"error": "이 컴퓨터는 화면에서 끌 수 없습니다. (Windows가 아닙니다)"})
+    threading.Thread(target=stop_sequence, args=(turn_off,), daemon=True).start()
     return jsonify({"ok": True})
 
 

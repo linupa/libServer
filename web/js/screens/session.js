@@ -65,16 +65,18 @@
 
   window.CLIB_FORMS = window.CLIB_FORMS || {};
   window.CLIB_FORMS.Shutdown = {
-    title: "종료", w: 460, h: 236, backColor: null, bold: false,
+    title: "종료", w: 460, h: 260, backColor: null, bold: false,
     children: [
       { id: "label_info", type: "label", x: 14, y: 12, w: 432, h: 34, align: "left", valign: "middle",
         text: "데이터를 백업하고 클라우드에 업로드한 뒤 서버를 종료합니다." },
       { id: "label_backup", type: "label", x: 24, y: 56, w: 420, h: 22, align: "left", valign: "middle", text: "" },
       { id: "label_upload", type: "label", x: 24, y: 80, w: 420, h: 22, align: "left", valign: "middle", text: "" },
       { id: "label_stop", type: "label", x: 24, y: 104, w: 420, h: 22, align: "left", valign: "middle", text: "" },
-      { id: "label_phase", type: "label", x: 14, y: 132, w: 432, h: 44, align: "left", valign: "top", text: "", bold: true },
-      { id: "btn_run", type: "button", x: 156, y: 188, w: 140, h: 32, text: "종료", bold: true },
-      { id: "btn_close", type: "button", x: 306, y: 188, w: 140, h: 32, text: "닫기", bold: true },
+      { id: "label_power", type: "label", x: 24, y: 128, w: 420, h: 22, align: "left", valign: "middle", text: "" },
+      { id: "label_phase", type: "label", x: 14, y: 156, w: 432, h: 44, align: "left", valign: "top", text: "", bold: true },
+      { id: "check_power", type: "check", x: 14, y: 218, w: 136, h: 20, text: "컴퓨터도 끄기", checked: true },
+      { id: "btn_run", type: "button", x: 156, y: 212, w: 140, h: 32, text: "종료", bold: true },
+      { id: "btn_close", type: "button", x: 306, y: 212, w: 140, h: 32, text: "닫기", bold: true },
     ],
   };
 
@@ -88,6 +90,7 @@
       phase.style.whiteSpace = "pre-line";
       let timer = null;
       let requested = false;  // 종료 pressed in this dialog
+      let last = null;  // the server's last answer, kept for when it is gone
 
       // ✔ done, ▶ now, ✖ failed, · not yet
       function steps(s) {
@@ -98,17 +101,26 @@
         ctx.box("label_backup").textContent = `${mark(0)}  1. 데이터 백업${stop && stop.backup ? ` (${stop.backup})` : ""}`;
         ctx.box("label_upload").textContent = `${mark(1)}  2. 클라우드 업로드`;
         ctx.box("label_stop").textContent = `${mark(2)}  3. 서버 종료`;
+        // 컴퓨터 끄기 follows the check box until 종료 has asked for it
+        const power = stop && stop.powerOff;
+        ctx.box("label_power").textContent = power || (!requested && $("check_power").checked && !$("check_power").disabled)
+          ? `${power === "scheduled" ? "✔" : power === "error" ? "✖" : "·"}  4. 컴퓨터 끄기` : "";
       }
 
       function render(s) {
-        steps(s);
         const running = s.state === "running";
         $("btn_run").disabled = running || s.state === "stopped" || !s.canStop || !ctx.library.isServer;
+        $("check_power").disabled = !s.canPowerOff || running || s.state === "stopped" || requested;
+        if (!s.canPowerOff) $("check_power").checked = false;
+        steps(s);
         if (!s.canStop) phase.textContent = "이 서버는 화면에서 종료할 수 없습니다. (run.bat으로 실행된 서버가 아닙니다)";
         else if (running) phase.textContent = s.kind === "start"
           ? "시작 준비(백업, 클라우드 다운로드)가 진행중입니다. 끝난 뒤에 종료해주세요."
           : `${STEPS[s.step] || ""} 중…${s.phase ? ` (${s.phase})` : ""}`;
-        else if (s.state === "stopped") phase.textContent = "서버를 종료했습니다. 브라우저를 닫아도 됩니다.";
+        else if (s.state === "stopped") phase.textContent =
+          s.powerOff === "scheduled" ? `서버를 종료했습니다. ${s.powerOffDelay || 60}초 뒤 컴퓨터가 꺼집니다.\n(취소: 명령 프롬프트에서 shutdown /a)`
+          : s.powerOff === "error" ? `서버를 종료했지만 컴퓨터를 끄지 못했습니다.\n${s.powerOffError || ""}`
+          : "서버를 종료했습니다. 브라우저를 닫아도 됩니다.";
         else if (s.state === "error" && s.kind === "stop") phase.textContent = `종료하지 못했습니다. 서버는 계속 실행 중입니다.\n${s.error || ""}`;
         else phase.textContent = "";
       }
@@ -122,30 +134,36 @@
         } catch (e) {
           // After the last step the server is gone; before it, the connection really failed
           if (requested) {
-            render({ kind: "stop", state: "stopped", canStop: true });
+            render(Object.assign({ kind: "stop", canStop: true }, last, { state: "stopped" }));
             return;
           }
           phase.textContent = `서버와 연결하지 못했습니다. ${e.message}`;
           return;
         }
+        last = s;
         render(s);
         if (s.state === "running" || (requested && s.state === "done")) timer = setTimeout(watch, 1000);
         else if (requested && s.state === "error") ctx.msgBox(phase.textContent);
       }
 
       $("btn_run").addEventListener("click", async () => {
-        if (!await ctx.confirm("데이터를 백업하고 클라우드에 업로드한 뒤 서버를 종료합니다.\n종료하시겠습니까?", "종료")) return;
-        const res = await fetch(api("shutdown"), { method: "POST" });
+        const powerOff = $("check_power").checked && !$("check_power").disabled;
+        if (!await ctx.confirm(`데이터를 백업하고 클라우드에 업로드한 뒤 서버를 종료${powerOff ? "하고 컴퓨터를 끕" : "합"}니다.\n종료하시겠습니까?`, "종료")) return;
+        const res = await fetch(api("shutdown"), { method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ powerOff }) });
         const result = await res.json();
         if (result.error) return ctx.msgBox(result.error);
         requested = true;
+        $("check_power").disabled = true;
         watch();
       });
       $("btn_close").addEventListener("click", () => { clearTimeout(timer); ctx.close(); });
+      $("check_power").addEventListener("change", () => steps(last));
 
       steps(null);
       if (!ctx.library.isServer) {
         $("btn_run").disabled = true;
+        $("check_power").disabled = true;
         phase.textContent = "서버에 연결된 경우에만 사용할 수 있습니다.";
         return;
       }
