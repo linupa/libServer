@@ -33,6 +33,10 @@ window.CLIB_LOGIC.UserSearch = {
       ctx.box("combo_index2").hidden = !choices;
       if (choices) $("combo_index2").replaceChildren(...choices.map(v => Object.assign(document.createElement("option"), { value: v, textContent: v })));
     }
+    // 회원명 comes first and is the default (CLIB starts with 회원번호)
+    const byName = [...$("combo_index").options].find(o => o.value === "회원명");
+    $("combo_index").prepend(byName);
+    $("combo_index").value = "회원명";
     $("combo_index").addEventListener("change", syncIndex);
     syncIndex();
 
