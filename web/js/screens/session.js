@@ -61,6 +61,31 @@
   }
   if (location.protocol.startsWith("http")) watchStart();
 
+  // ---- the last cloud download / upload in the status bar --------------------
+
+  async function showLastSync() {
+    const el = document.getElementById("status-cloud");
+    let s;
+    try {
+      const res = await fetch(api("cloud"));
+      if (!res.ok) throw new Error(`서버 오류 (${res.status})`);
+      s = await res.json();
+    } catch (e) {
+      setTimeout(showLastSync, 30000);  // the server may be stopping or restarting
+      return;
+    }
+    const last = s.last || {};
+    const today = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+    const when = t => (!t ? "없음" : t.startsWith(today) ? `오늘 ${t.slice(11, 16)}` : t.slice(0, 16));
+    const running = s.state === "running";
+    el.textContent = running
+      ? `클라우드 ${STEPS[s.mode] ? STEPS[s.mode].replace("클라우드 ", "") : ""} 중…`
+      : `클라우드 다운로드 ${when(last.download)} · 업로드 ${when(last.upload)}`;
+    el.title = `마지막 클라우드 다운로드: ${last.download || "없음"}\n마지막 클라우드 업로드: ${last.upload || "없음"}`;
+    setTimeout(showLastSync, running ? 5000 : 30000);
+  }
+  if (location.protocol.startsWith("http")) showLastSync();
+
   // ---- 종료 ------------------------------------------------------------------
 
   window.CLIB_FORMS = window.CLIB_FORMS || {};
