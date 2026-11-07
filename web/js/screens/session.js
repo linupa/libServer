@@ -116,6 +116,7 @@
       let timer = null;
       let requested = false;  // 종료 pressed in this dialog
       let last = null;  // the server's last answer, kept for when it is gone
+      let noCloud = false;  // server started with --no-cloud
 
       // ✔ done, ▶ now, ✖ failed, · not yet
       function steps(s) {
@@ -124,7 +125,8 @@
         const at = !stop ? -1 : stop.state === "stopped" ? 3 : stop.state === "done" ? 2 : order.indexOf(stop.step);
         const mark = i => !stop || at < i ? "·" : at > i ? "✔" : stop.state === "error" ? "✖" : "▶";
         ctx.box("label_backup").textContent = `${mark(0)}  1. 데이터 백업${stop && stop.backup ? ` (${stop.backup})` : ""}`;
-        ctx.box("label_upload").textContent = `${mark(1)}  2. 클라우드 업로드`;
+        // --no-cloud: the upload is skipped
+        ctx.box("label_upload").textContent = noCloud ? "–  2. 클라우드 업로드 (--no-cloud: 하지 않음)" : `${mark(1)}  2. 클라우드 업로드`;
         ctx.box("label_stop").textContent = `${mark(2)}  3. 서버 종료`;
         // 컴퓨터 끄기 follows the check box until 종료 has asked for it
         const power = stop && stop.powerOff;
@@ -133,6 +135,10 @@
       }
 
       function render(s) {
+        noCloud = !!s.noCloud;
+        ctx.box("label_info").textContent = noCloud
+          ? "데이터를 백업한 뒤 서버를 종료합니다. (--no-cloud: 클라우드에 업로드하지 않음)"
+          : "데이터를 백업하고 클라우드에 업로드한 뒤 서버를 종료합니다.";
         const running = s.state === "running";
         $("btn_run").disabled = running || s.state === "stopped" || !s.canStop || !ctx.library.isServer;
         $("check_power").disabled = !s.canPowerOff || running || s.state === "stopped" || requested;
@@ -173,7 +179,8 @@
 
       $("btn_run").addEventListener("click", async () => {
         const powerOff = $("check_power").checked && !$("check_power").disabled;
-        if (!await ctx.confirm(`데이터를 백업하고 클라우드에 업로드한 뒤 서버를 종료${powerOff ? "하고 컴퓨터를 끕" : "합"}니다.\n종료하시겠습니까?`, "종료")) return;
+        const what = noCloud ? "데이터를 백업한 뒤" : "데이터를 백업하고 클라우드에 업로드한 뒤";
+        if (!await ctx.confirm(`${what} 서버를 종료${powerOff ? "하고 컴퓨터를 끕" : "합"}니다.\n종료하시겠습니까?`, "종료")) return;
         const res = await fetch(api("shutdown"), { method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ powerOff }) });
         const result = await res.json();

@@ -4,7 +4,8 @@
 Both ports serve the same /api, in one process, so writes from either share one lock.
 
 Run with the Windows venv (LocalDB only accepts local Windows connections):
-    .venv\\Scripts\\python app.py
+    .venv\\Scripts\\python app.py [--no-cloud]
+--no-cloud: starting and 종료 only back up, without the cloud download / upload.
 
 Reads get their own connection, which is rolled back. Lending, returns and renewals
 (circulation.py) run one at a time in a transaction that commits only when they succeed.
@@ -564,6 +565,9 @@ SEQUENCE_BUSY = "시작 또는 종료 작업(백업, 클라우드 동기화)이 
 STEP_NAMES = {"backup": "데이터 백업", "download": "클라우드 다운로드", "upload": "클라우드 업로드"}
 # Set by __main__: stops the web servers (none when run some other way)
 stop_server = None
+# --no-cloud: the start and stop sequences back up but leave the cloud alone (the
+# 클라우드 다운로드 / 업로드 dialogs still work)
+NO_CLOUD = False
 # 컴퓨터도 끄기: Windows turns the PC off this many seconds after 종료; `shutdown /a` cancels it
 POWER_OFF_DELAY = 60
 CAN_POWER_OFF = os.name == "nt"
@@ -596,6 +600,10 @@ def run_sequence(kind):
     except Exception as e:
         app.logger.warning("auto backup (%s) failed: %s", trigger, e)
 
+    if NO_CLOUD:
+        SEQUENCE.update(state="done", skipped=f"--no-cloud로 실행되어 {STEP_NAMES[mode]}를 하지 않았습니다.",
+                        finishedAt=now_text())
+        return True
     if mode == "download" and read_only():
         SEQUENCE.update(state="done", skipped="읽기 전용이라 다운로드하지 않았습니다.", finishedAt=now_text())
         return True
@@ -639,7 +647,7 @@ def stop_sequence(turn_off=False):
 
 @app.get("/api/sequence")
 def sequence_status():
-    status = dict(SEQUENCE, canStop=stop_server is not None, canPowerOff=CAN_POWER_OFF)
+    status = dict(SEQUENCE, canStop=stop_server is not None, canPowerOff=CAN_POWER_OFF, noCloud=NO_CLOUD)
     if status.get("state") == "running" and status.get("step") in ("download", "upload"):
         status["phase"] = CLOUD.get("phase")
     return jsonify(status)
@@ -764,8 +772,14 @@ def static_files(path):
 
 
 if __name__ == "__main__":
+    import argparse
     import socket
     import sys
+
+    parser = argparse.ArgumentParser(description="CLIB Web server")
+    parser.add_argument("--no-cloud", action="store_true",
+                        help="don't download from / upload to the cloud when starting and at 종료 (backups still run)")
+    NO_CLOUD = parser.parse_args().no_cloud
 
     # Windows lets a second server bind the same port, and requests then go to whichever
     # it likes (an old copy keeps answering with old code); refuse to start instead
@@ -779,6 +793,8 @@ if __name__ == "__main__":
     servers = [make_server("127.0.0.1", port, app, threaded=True) for port in SITES]
     for port, root in SITES.items():
         print(f" * {root.name}: http://127.0.0.1:{port}/", flush=True)
+    if NO_CLOUD:
+        print(" * --no-cloud: 시작과 종료 때 클라우드 다운로드 / 업로드를 하지 않습니다.", flush=True)
     for server in servers[1:]:
         threading.Thread(target=server.serve_forever, daemon=True).start()
     stop_server = lambda: [server.shutdown() for server in servers]

@@ -36,6 +36,8 @@ done. The 종료 tab backs up (`_OFF.bak`), uploads to the cloud and then stops 
 (`shutdown /s /t 60`; `shutdown /a` cancels it). A failed backup stops either sequence before
 anything is replaced or sent, and a failed upload leaves the server running (and the PC on) so
 종료 can be tried again. Stopping the server with Ctrl+C only backs up.
+`run.bat --no-cloud` starts a server that only backs up when it starts and at 종료, without
+the cloud download / upload (the 클라우드 다운로드 / 업로드 dialogs still work).
 The status bar shows the last cloud download and upload (refreshed every 30 seconds).
 The server refuses to start if either port is already taken (Windows would otherwise let a
 second copy bind the same port). Opening `web/index.html` straight from disk still works and
