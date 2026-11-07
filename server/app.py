@@ -573,6 +573,30 @@ POWER_OFF_DELAY = 60
 CAN_POWER_OFF = os.name == "nt"
 
 
+def say(message):
+    """A line in the server's console window."""
+    print(f" * {message}", flush=True)
+
+
+def local_backup(trigger):
+    """CLIB's safety copy (_ON when starting, _OFF when stopping), then 자동백업 when due.
+    Gives the safety copy's path and raises when it fails; a failed 자동백업 is only reported."""
+    say("로컬 백업 중…")
+    try:
+        done = backup.default_backup(trigger)
+    except Exception as e:
+        say(f"로컬 백업 실패: {e}")
+        raise
+    say(f"로컬 백업 완료: {done}")
+    try:
+        if backup.auto_backup_due(trigger):
+            say(f"자동백업 완료: {backup.auto_backup()}")
+    except Exception as e:
+        say(f"자동백업 실패: {e}")
+        app.logger.warning("auto backup (%s) failed: %s", trigger, e)
+    return done
+
+
 def run_sequence(kind):
     """kind "start": back up (CLIB's _ON copy, and 자동백업 when due), then download from the
     cloud. "stop": back up (_OFF), then upload. A failed backup stops the sequence, so the data
@@ -591,29 +615,31 @@ def run_sequence(kind):
         return False
 
     try:
-        SEQUENCE["backup"] = backup.default_backup(trigger).name
+        SEQUENCE["backup"] = local_backup(trigger).name
     except Exception as e:
+        say(f"{STEP_NAMES[mode]}: 로컬 백업이 없어 하지 않음")
         return fail(f"백업하지 못해 {STEP_NAMES[mode]}를 하지 않았습니다.\n{e}")
-    try:  # 자동백업 is extra; its failure doesn't stop anything
-        if backup.auto_backup_due(trigger):
-            backup.auto_backup()
-    except Exception as e:
-        app.logger.warning("auto backup (%s) failed: %s", trigger, e)
 
     if NO_CLOUD:
+        say(f"{STEP_NAMES[mode]}: --no-cloud라 하지 않음")
         SEQUENCE.update(state="done", skipped=f"--no-cloud로 실행되어 {STEP_NAMES[mode]}를 하지 않았습니다.",
                         finishedAt=now_text())
         return True
     if mode == "download" and read_only():
+        say(f"{STEP_NAMES[mode]}: 읽기 전용이라 하지 않음")
         SEQUENCE.update(state="done", skipped="읽기 전용이라 다운로드하지 않았습니다.", finishedAt=now_text())
         return True
     SEQUENCE["step"] = mode
     busy = begin_cloud_job(mode)
     if busy:
+        say(f"{STEP_NAMES[mode]} 실패: {busy}")
         return fail(busy)
+    say(f"{STEP_NAMES[mode]} 중…")
     cloud_job(mode, False, False)
     if CLOUD.get("state") != "done":
+        say(f"{STEP_NAMES[mode]} 실패: {CLOUD.get('error') or ''}")
         return fail(f"{STEP_NAMES[mode]}에 실패했습니다.\n{CLOUD.get('error') or ''}".strip())
+    say(f"{STEP_NAMES[mode]} 완료")
     SEQUENCE.update(state="done", finishedAt=now_text())
     return True
 
@@ -636,11 +662,13 @@ def stop_sequence(turn_off=False):
     if run_sequence("stop"):
         if turn_off:
             error = power_off()
+            say(f"컴퓨터 끄기 실패: {error}" if error else f"{POWER_OFF_DELAY}초 뒤 컴퓨터가 꺼집니다. (취소: shutdown /a)")
             SEQUENCE.update(powerOff="error" if error else "scheduled", powerOffDelay=POWER_OFF_DELAY)
             if error:
                 SEQUENCE["powerOffError"] = error
                 app.logger.warning("power off: %s", error)
         SEQUENCE["state"] = "stopped"
+        say("서버를 종료합니다.")
         time.sleep(2)  # let the 종료 dialog see it before the server goes
         stop_server()
 
@@ -807,5 +835,8 @@ if __name__ == "__main__":
     finally:
         # 종료 backed up already; Ctrl+C only backs up, as CLIB does when it exits
         if SEQUENCE.get("state") != "stopped":
-            print(" * 종료 전 백업 중…", flush=True)
-            backup.run_triggers("stop")
+            say("종료 없이 멈춥니다: 로컬 백업만 하고 클라우드 업로드는 하지 않습니다.")
+            try:
+                local_backup("stop")
+            except Exception:  # reported by local_backup; the server stops anyway
+                pass

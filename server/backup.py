@@ -137,18 +137,6 @@ def default_backup(trigger):
     return backup_to(folder / f"{datetime.now():%Y%m%d}_{'ON' if trigger == 'start' else 'OFF'}.bak")
 
 
-def run_triggers(trigger, log=print):
-    """What CLIB does when it starts or exits: the safety copy, then 자동백업 if it is due."""
-    for name, job in (("default", lambda: default_backup(trigger)),
-                      ("auto", lambda: auto_backup() if auto_backup_due(trigger) else None)):
-        try:
-            done = job()
-            if done:
-                log(f"backup ({name}, {trigger}): {done}")
-        except Exception as e:  # a failed backup must not stop the server
-            log(f"backup ({name}, {trigger}) failed: {e}")
-
-
 def list_backups():
     out = []
     for folder in FOLDERS:
