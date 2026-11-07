@@ -346,6 +346,32 @@ def search_books(conn, field=None, keyword="", start=None, end=None, limit=1000)
     return [book_view(r, q.get(r["BARCODE"], [])) for r in found]
 
 
+# 분류기호 검색 (Category.cs): CLIB's own query for its KDC tables
+CATEGORY_SQL = """SELECT A.CODE AS CODE_TOP, A.CODE_NAME AS NAME_TOP, B.CODE AS CODE_SUB,
+B.CODE_NAME AS NAME_SUB, C.CODE AS CODE_DETAIL, C.CODE_NAME AS NAME_DETAIL
+FROM CATEGORY AS A, CATEGORY_TOP AS B, CATEGORY_SUB AS C
+WHERE A.CODE = B.CATEGORY_CODE
+AND B.CODE = C.CODE_TOP ORDER BY C.SEQ"""
+
+
+def categories(conn):
+    """The KDC tree: [{code, name, children: [{code, name, children: [{code, name}]}]}],
+    주류 > 강목 > 요목, in CLIB's order (CATEGORY_SUB.SEQ)."""
+    tree, nodes = [], {}
+
+    def node(siblings, key, code, name):
+        if key not in nodes:
+            nodes[key] = {"code": (code or "").strip(), "name": (name or "").strip(), "children": []}
+            siblings.append(nodes[key])
+        return nodes[key]
+
+    for r in rows(conn, CATEGORY_SQL):
+        top = node(tree, ("top", r["CODE_TOP"]), r["CODE_TOP"], r["NAME_TOP"])
+        sub = node(top["children"], ("sub", r["CODE_SUB"]), r["CODE_SUB"], r["NAME_SUB"])
+        sub["children"].append({"code": (r["CODE_DETAIL"] or "").strip(), "name": (r["NAME_DETAIL"] or "").strip()})
+    return tree
+
+
 def all_loans(conn):
     found = rows(conn, BOOK_SQL + " AND L.STATS IN (1, 3) ORDER BY L.LENT_DATE")
     q = queues(conn, [r["BARCODE"] for r in found])

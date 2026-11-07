@@ -258,6 +258,12 @@ def books():
         return jsonify(repo.search_books(conn, a.get("field", "서명"), a.get("q", "")))
 
 
+@app.get("/api/categories")
+def categories():
+    with db() as conn:
+        return jsonify(repo.categories(conn))
+
+
 @app.get("/api/loans")
 def loans():
     with db() as conn:

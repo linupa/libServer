@@ -400,7 +400,14 @@ window.CLIB_LOGIC.BookManage = {
       ctx.openDialog(copies.some(b => b.isbn.replace(/-/g, "") === isbn) ? "CopyBookDlg" : "SearchISBNDlg");
     });
     if (!ctx.ported("CopyBookDlg") && !ctx.ported("SearchISBNDlg")) ctx.notPorted("btn_isbnSearch");
-    ctx.notPorted("btn_category");
+    // 분류기호 검색 (Category) puts the chosen code into 분류기호
+    ctx.dialogButton("btn_category", "Category");
+    const offCategory = ctx.bus.on("pickCategory", code => {
+      if (!ctx.box("booklist").isConnected) return offCategory();
+      $("txt_category").value = code;
+      edited();
+      refreshMarc();
+    });
     click("btn_authorcode", makeAuthorCode);
     click("btn_detailView", () => { showFixed = !showFixed; right.relayout(showFixed); });
     click("btn_F5", insertSubfield);

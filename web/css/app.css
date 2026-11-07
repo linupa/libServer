@@ -667,3 +667,11 @@ tbody tr.row-bisque td { background: bisque; }
 .session-banner.done { background: #e3f4e1; border-color: #8fc98a; }
 .session-banner.error { background: #fbe3e2; border-color: #d9827f; white-space: pre-line; }
 .session-banner .msg { flex: 1; }
+/* 분류기호 검색 (Category): CLIB's TreeView */
+.kdc-tree { background: var(--window); border: 1px solid var(--border); overflow-y: auto; outline: none; padding: 2px 0; }
+.kdc-tree:focus-visible { border-color: var(--hover-border); }
+.kdc-node { padding: 2px 6px 2px 4px; white-space: nowrap; cursor: default; user-select: none; }
+.kdc-node:hover { background: var(--hover); }
+.kdc-node.selected { background: var(--highlight); color: var(--highlight-text); }
+.kdc-toggle { display: inline-block; width: 14px; text-align: center; color: var(--muted); }
+.kdc-node.selected .kdc-toggle { color: var(--highlight-text); }

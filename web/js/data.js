@@ -558,6 +558,18 @@
         return all.filter(b => String(b[f] || "").toLowerCase().includes(kw));
       },
       exCategories: () => [...new Set([...books.values()].map(b => b.exCate).filter(Boolean))],
+      // 분류기호 검색: KDC 주류 (강목 and 요목 only under 문학 > 한국문학 in this sample)
+      categories() {
+        const kdc = (code, name, children = []) => ({ code, name, children });
+        return [["000", "총류"], ["100", "철학"], ["200", "종교"], ["300", "사회과학"], ["400", "자연과학"],
+          ["500", "기술과학"], ["600", "예술"], ["700", "언어"], ["800", "문학"], ["900", "역사"]].map(([code, name]) =>
+          kdc(code, name, code !== "800" ? [] : [
+            kdc("810", "한국문학", [["811", "시"], ["812", "희곡"], ["813", "소설"], ["814", "수필"], ["815", "연설, 웅변"],
+              ["816", "일기, 서간, 기행"], ["817", "풍자 및 유머"], ["818", "르포르타주 및 기타"]].map(([c, n]) => kdc(c, n))),
+            kdc("820", "중국문학"), kdc("830", "일본문학"), kdc("840", "영미문학"), kdc("850", "독일문학"),
+            kdc("860", "프랑스문학"), kdc("870", "스페인 및 포르투갈문학"), kdc("880", "이탈리아문학"), kdc("890", "기타 제문학"),
+          ]));
+      },
 
       // 도서관리 저장. Field checks happen in the screen; this checks loans and duplicates.
       // Returns { error } | { confirm, title } | { ok, book }. Pass { overwrite: true } after a confirm.

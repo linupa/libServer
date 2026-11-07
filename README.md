@@ -25,6 +25,8 @@ opened by their tabs only, without a toolbar button of their own. CLIB's 독서�
   불러오기 loads them); those not found stay in the box.
   Rows are white when saved, bisque when a required (★) field is missing and grey when
   not saved. 저자기호 생성 follows CLIB's 이재철 5표 (`web/js/authorCode.js`).
+  분류기호's 검색 opens 분류기호 검색 (`Category`): CLIB's KDC tree (주류 > 강목 > 요목) with a
+  찾기 box; double-click, Enter or 선택 puts the code into 분류기호.
   고정필드 shows the MARC fixed fields and 전문가용 shows the record as MARC (F5 ▼, F6 ▲, F7 ↔).
 - 도서 불러오기 (`SearchMarc`): 일반검색 by any 검색기준, or 구간검색 by barcode range.
   불러오기 loads the checked books; 전체 불러오기 (in place of CLIB's 전체선택) loads every result.

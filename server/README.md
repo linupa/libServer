@@ -96,6 +96,7 @@ run.bat              start script
 | `GET /api/users?grade=` | 등급별 회원번호관리: every member of one grade `[{userGrade, userId, userName}]` |
 | `GET /api/users/deleted` | 삭제한 회원번호관리: deleted members with their 대출 / 반납 / 연체 counts up to the deletion, and the deletion time (MOD_DATE) |
 | `GET /api/overdue` | 연체관리: `{users, loans}`, the 연체중 members (with their overdue count and unpaid 연체금) and every overdue loan with its borrower |
+| `GET /api/categories` | 분류기호 검색: the KDC tree from CATEGORY, CATEGORY_TOP and CATEGORY_SUB (CLIB's query), `[{code, name, children}]` |
 | `GET /api/books/<barcode>` | book with its loan and waiting list (404 if none); `?full=1` adds the MARC fields and MARC text |
 | `GET /api/books?field=&q=` / `?start=&end=` | 도서 불러오기 searches (up to 1000) |
 | `GET /api/stats/books?by=` | 도서보유현황 totals: by 0 도서상태 (BOOK_LENT rows), 1 도서분류, 2 별치기호, 3 소장위치, 4 반입구분; `[{name, count}]`, 전체 first |

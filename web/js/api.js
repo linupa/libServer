@@ -88,6 +88,11 @@
       userStats: by => get("stats/users", { by }),
       userStatsDetail: (by, name) => get("stats/users/detail", { by, name }),
       exCategories: () => db.exCategories,
+      // 분류기호 검색: CLIB's KDC tree, read once (again after a failure)
+      categories: (() => {
+        let tree = null;
+        return () => (tree = tree || get("categories").catch(e => { tree = null; throw e; }));
+      })(),
       // 환경설정 panels and 회원증 출력: { lend, grades, userCodeByGrade, book, bankbook, library, card }
       async saveSettings(changes) {
         const result = await post("settings", { changes });
