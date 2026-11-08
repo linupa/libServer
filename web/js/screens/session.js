@@ -90,18 +90,19 @@
 
   window.CLIB_FORMS = window.CLIB_FORMS || {};
   window.CLIB_FORMS.Shutdown = {
-    title: "종료", w: 460, h: 260, backColor: null, bold: false,
+    title: "종료", w: 560, h: 290, backColor: null, bold: false,
     children: [
-      { id: "label_info", type: "label", x: 14, y: 12, w: 432, h: 34, align: "left", valign: "middle",
+      { id: "label_info", type: "label", x: 14, y: 12, w: 532, h: 34, align: "left", valign: "middle",
         text: "데이터를 백업하고 클라우드에 업로드한 뒤 서버를 종료합니다." },
-      { id: "label_backup", type: "label", x: 24, y: 56, w: 420, h: 22, align: "left", valign: "middle", text: "" },
-      { id: "label_upload", type: "label", x: 24, y: 80, w: 420, h: 22, align: "left", valign: "middle", text: "" },
-      { id: "label_stop", type: "label", x: 24, y: 104, w: 420, h: 22, align: "left", valign: "middle", text: "" },
-      { id: "label_power", type: "label", x: 24, y: 128, w: 420, h: 22, align: "left", valign: "middle", text: "" },
-      { id: "label_phase", type: "label", x: 14, y: 156, w: 432, h: 44, align: "left", valign: "top", text: "", bold: true },
-      { id: "check_power", type: "check", x: 14, y: 218, w: 136, h: 20, text: "컴퓨터도 끄기", checked: true },
-      { id: "btn_run", type: "button", x: 156, y: 212, w: 140, h: 32, text: "종료", bold: true },
-      { id: "btn_close", type: "button", x: 306, y: 212, w: 140, h: 32, text: "닫기", bold: true },
+      { id: "label_backup", type: "label", x: 24, y: 56, w: 520, h: 22, align: "left", valign: "middle", text: "" },
+      { id: "label_upload", type: "label", x: 24, y: 80, w: 520, h: 22, align: "left", valign: "middle", text: "" },
+      { id: "label_stop", type: "label", x: 24, y: 104, w: 520, h: 22, align: "left", valign: "middle", text: "" },
+      { id: "label_power", type: "label", x: 24, y: 128, w: 520, h: 22, align: "left", valign: "middle", text: "" },
+      // Room for five lines (an error from the upload can be longer: it scrolls on its own)
+      { id: "label_phase", type: "label", x: 14, y: 156, w: 532, h: 72, align: "left", valign: "top", text: "", bold: true },
+      { id: "check_power", type: "check", x: 14, y: 250, w: 136, h: 20, text: "컴퓨터도 끄기", checked: true },
+      { id: "btn_run", type: "button", x: 256, y: 244, w: 140, h: 32, text: "종료", bold: true },
+      { id: "btn_close", type: "button", x: 406, y: 244, w: 140, h: 32, text: "닫기", bold: true },
     ],
   };
 
@@ -113,6 +114,9 @@
       const $ = ctx.input;
       const phase = ctx.box("label_phase");
       phase.style.whiteSpace = "pre-line";
+      phase.style.overflowY = "auto";
+      // The --no-cloud text is longer than one line
+      ctx.box("label_info").style.whiteSpace = "normal";
       let timer = null;
       let requested = false;  // 종료 pressed in this dialog
       let last = null;  // the server's last answer, kept for when it is gone
