@@ -734,6 +734,31 @@
       URL.revokeObjectURL(a.href);
     }
 
+    // ↑ / ↓ select the previous / next row as a click would (the first or last when none is
+    // selected), keeping it in view below the header; an edit box in a cell keeps its keys
+    gridEl.addEventListener("keydown", e => {
+      if ((e.key !== "ArrowUp" && e.key !== "ArrowDown") || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+      if (e.target.matches("input:not([type=checkbox]), select, textarea")) return;
+      const list = visibleRows();
+      if (!list.length) return;
+      e.preventDefault();
+      const i = list.indexOf(state.selected);
+      const next = i < 0 ? list[e.key === "ArrowDown" ? 0 : list.length - 1]
+        : list[Math.min(list.length - 1, Math.max(0, i + (e.key === "ArrowDown" ? 1 : -1)))];
+      if (next === state.selected) return;
+      state.selected = next;
+      draw();
+      const row = $("tr.selected", tbody);
+      if (row) {
+        const grid = gridEl.getBoundingClientRect();
+        const r = row.getBoundingClientRect();
+        const top = grid.top + thead.getBoundingClientRect().height;
+        if (r.top < top) gridEl.scrollTop -= top - r.top;
+        else if (r.bottom > grid.top + gridEl.clientHeight) gridEl.scrollTop += r.bottom - (grid.top + gridEl.clientHeight);
+      }
+      if (opts.onRowClick) opts.onRowClick(next);
+    });
+
     drawHead();
     draw();
     return {
