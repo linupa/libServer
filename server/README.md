@@ -102,6 +102,7 @@ run.bat              start script
 | `GET /api/categories` | 분류기호 검색: the KDC tree from CATEGORY, CATEGORY_TOP and CATEGORY_SUB (CLIB's query), `[{code, name, children}]` |
 | `GET /api/books/<barcode>` | book with its loan and waiting list (404 if none); `?full=1` adds the MARC fields and MARC text |
 | `GET /api/books?field=&q=` / `?start=&end=` | 도서 불러오기 searches (up to 1000) |
+| `GET /api/isbn/<isbn>` | 도서관리's ISBN 검색 on the 국립중앙도서관 (`isbn.py`): the book's fields, 404 when nothing is found |
 | `GET /api/stats/books?by=` | 도서보유현황 totals: by 0 도서상태 (BOOK_LENT rows), 1 도서분류, 2 별치기호, 3 소장위치, 4 반입구분; `[{name, count}]`, 전체 first |
 | `GET /api/stats/books/detail?by=&name=&row=` | the books of one row (도서분류 by `row`, the others by `name`; 전체 = all) |
 | `GET /api/stats/users?by=` | 이용자현황 totals: by 0 회원등급, 1 회원상태 |
@@ -351,6 +352,19 @@ Not ported: RFID readers, and 독서통장 members (refused, as at the desk).
 CLIB and CLIB_Self start LocalDB themselves. After such a restart the ODBC driver sometimes
 stops finding `(localdb)\v11.0` by name while the instance runs fine. `db.connect()` then looks
 up the instance's named pipe with `sqllocaldb info` and connects through it.
+
+## ISBN 검색 (도서관리)
+
+`isbn.py`, after CLIB's `SearchToISBN()` (도서관리설정 ISBN 검색: 국립중앙도서관): looks the ISBN up in
+the National Library of Korea's 서지정보 (seoji), catalogue and KOLIS-NET APIs and fills a new
+record, 저자기호 included. When the library already has the ISBN, 도서관리 first offers to add one
+more 복본 instead. CLIB's other mode used a key-less API that no longer answers, so the web always
+searches this way. The API key (from nl.go.kr Open API) is read from `C:\CLIB\isbnKey.json`, or
+the file `"isbnKeyFile"` in `config.json` names:
+
+```json
+{ "key": "..." }
+```
 
 ## Cloud download and upload (데이터베이스 관리 → 클라우드 다운로드 / 업로드)
 

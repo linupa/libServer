@@ -322,6 +322,49 @@ window.CLIB_LOGIC.BookManage = {
       refreshMarc();
     }
 
+    // ---- ISBN 검색 -------------------------------------------------------------
+
+    // SearchISBN(): when the library has the ISBN already, CopyBookDlg offers its books as the
+    // model for one more 복본 (here one question, for the highest 복본기호); otherwise, or when
+    // that is declined, SearchToISBN() looks it up on the 국립중앙도서관 and fills a new record.
+    // CLIB's other ISBN 검색 mode (SearchISBNDlg) used an API that no longer answers.
+    async function searchIsbn() {
+      const isbn = $("txt_isbnSearch").value.trim().replace(/[\s-]/g, "");
+      if (!isbn) return ctx.msgBox("검색할 ISBN을 입력해주세요.");
+      const copies = (await lib.searchBooks({ field: "ISBN", keyword: isbn }))
+        .filter(b => (b.isbn || "").replace(/[\s-]/g, "") === isbn);
+      if (copies.length) {
+        const copyNo = b => parseInt(b.copy, 10) || 1;
+        const model = copies.reduce((a, b) => (copyNo(b) > copyNo(a) ? b : a));
+        if (await ctx.confirm(`같은 ISBN의 도서가 ${copies.length}권 있습니다.\n${model.title} (${model.barcode})\n\n` +
+            "복본으로 추가하시겠습니까?\n아니요를 누르면 국립중앙도서관에서 검색합니다.", "복본검색")) {
+          const book = await lib.findBook(model.barcode, { full: true }) || model;
+          newRecord();
+          // A new copy: the same book with the next 복본기호, a 등록번호 of its own
+          writeForm({ ...book, barcode: "", uid: "", copy: String(copyNo(model) + 1), regDate: "", modDate: "", marcText: "" });
+          return $("txt_barcode").focus();
+        }
+      }
+      if (!lib.lookupIsbn) return ctx.msgBox("국립중앙도서관 ISBN 검색은 서버에 연결된 경우에만 사용할 수 있습니다.");
+      $("btn_isbnSearch").disabled = true;
+      let found;
+      try {
+        found = await lib.lookupIsbn(isbn);
+      } catch (e) {
+        return ctx.msgBox(e.message, "ISBN 검색");
+      } finally {
+        $("btn_isbnSearch").disabled = false;
+      }
+      if (!found) return ctx.msgBox("검색 결과가 없습니다.");
+      newRecord();
+      writeForm({ ...blank(), ...found });
+      // CreateAuthorCode(bBatch: true): the 저자기호 too, quietly when it can't be made
+      const code = authorCode.check(found.author, found.title, lib.settings.book.authorCode);
+      if (!code.error) $("txt_authorcode").value = code.code;
+      refreshMarc();
+      $("txt_barcode").focus();
+    }
+
     // ---- 전문가용: MARC text --------------------------------------------------
 
     // A KORMARC-style view of the record. ▼ starts a subfield, ▲ ends a field, ↔ ends the record.
@@ -391,15 +434,10 @@ window.CLIB_LOGIC.BookManage = {
     $("txt_LoadBarcode").addEventListener("keydown", e => {
       if (e.key === "Enter" && e.ctrlKey && !e.isComposing) { e.preventDefault(); loadByBarcode(); }
     });
-    // SearchISBN(): a copy already in the library opens 복본검색, otherwise the
-    // 국립중앙도서관 results. Both dialogs show sample rows until a backend is connected.
-    click("btn_isbnSearch", async () => {
-      const isbn = $("txt_isbnSearch").value.trim().replace(/-/g, "");
-      if (!isbn) return ctx.msgBox("검색할 ISBN을 입력해주세요.");
-      const copies = await lib.searchBooks({ field: "ISBN", keyword: isbn });
-      ctx.openDialog(copies.some(b => b.isbn.replace(/-/g, "") === isbn) ? "CopyBookDlg" : "SearchISBNDlg");
+    click("btn_isbnSearch", searchIsbn);
+    $("txt_isbnSearch").addEventListener("keydown", e => {
+      if (e.key === "Enter" && !e.isComposing) { e.preventDefault(); searchIsbn(); }
     });
-    if (!ctx.ported("CopyBookDlg") && !ctx.ported("SearchISBNDlg")) ctx.notPorted("btn_isbnSearch");
     // 분류기호 검색 (Category) puts the chosen code into 분류기호
     ctx.dialogButton("btn_category", "Category");
     const offCategory = ctx.bus.on("pickCategory", code => {

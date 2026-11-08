@@ -77,6 +77,8 @@
         if (!res.ok) throw new Error(result && result.error ? result.error : `서버 오류 (${res.status})`);
         return result;
       },
+      // 국립중앙도서관 ISBN 검색 (server/isbn.py): the book's fields, or null when nothing is found
+      lookupIsbn: isbn => get(`isbn/${enc(String(isbn).trim())}`),
       searchBooks: ({ field, keyword, start, end }) =>
         (start !== undefined ? get("books", { start, end }) : get("books", { field, q: keyword })),
       allLoans: () => get("loans"),

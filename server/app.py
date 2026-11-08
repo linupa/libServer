@@ -250,6 +250,24 @@ def kiosk_search():
         return jsonify(repo.kiosk_search(conn, request.args.get("field"), request.args.get("q", "")))
 
 
+@app.get("/api/isbn/<code>")
+def isbn_search(code):
+    """도서관리's ISBN 검색 on the 국립중앙도서관 (isbn.py); 404 when nothing is found."""
+    import xml.etree.ElementTree as ET
+    import isbn
+    try:
+        found = isbn.lookup(code)
+    except isbn.IsbnError as e:
+        return jsonify({"error": str(e)}), 502
+    except (ValueError, ET.ParseError) as e:  # an answer that isn't the JSON / XML it should be
+        app.logger.warning("isbn %s: %s", code, e)
+        return jsonify({"error": "국립중앙도서관의 응답을 읽지 못했습니다.\n다시 검색해주세요."}), 502
+    except OSError as e:
+        app.logger.warning("isbn %s: %s", code, e)
+        return jsonify({"error": "국립중앙도서관에 연결하지 못했습니다.\n인터넷 연결을 확인해주세요."}), 502
+    return jsonify(found) if found else (jsonify(None), 404)
+
+
 @app.get("/api/books")
 def books():
     a = request.args
