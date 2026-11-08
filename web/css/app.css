@@ -675,3 +675,12 @@ tbody tr.row-bisque td { background: bisque; }
 .kdc-node.selected { background: var(--highlight); color: var(--highlight-text); }
 .kdc-toggle { display: inline-block; width: 14px; text-align: center; color: var(--muted); }
 .kdc-node.selected .kdc-toggle { color: var(--highlight-text); }
+
+/* 도서 ISBN 검색: the columns share the list's width, 서명 taking what the others leave */
+.form-SearchISBNDlg .ctl.list table { table-layout: fixed; width: 100%; }
+.form-SearchISBNDlg .ctl.list th, .form-SearchISBNDlg .ctl.list td { overflow: hidden; text-overflow: ellipsis; }
+.form-SearchISBNDlg .ctl.list th:nth-child(1) { width: 40px; }
+.form-SearchISBNDlg .ctl.list th:nth-child(3) { width: 90px; }
+.form-SearchISBNDlg .ctl.list th:nth-child(4) { width: 90px; }
+.form-SearchISBNDlg .ctl.list th:nth-child(5) { width: 64px; }
+.form-SearchISBNDlg .ctl.list th:nth-child(6) { width: 70px; }

@@ -18,6 +18,8 @@ FORMS = {
     "BookReserve": {"file": "BookDream/BookReserve.cs", "skip": BANNERS + ["btn_RFID_User", "btn_RFID_Book"]},
     # panel2 holds the banner ads; btn_tagging/button1 are RFID-only
     "BookManage": {"file": "BookDream/BookManage.cs", "skip": ["panel2", "btn_tagging", "button1"]},
+    # 도서 ISBN 검색: the National Library's matches for an ISBN, one of them taken into 도서관리
+    "SearchISBNDlg": {"file": "BookDream.Book/SearchISBNDlg.cs", "skip": []},
     # 전체선택 is replaced on the web by 전체 불러오기 (load every result)
     "SearchMarc": {"file": "BookDream/SearchMarc.cs", "skip": ["btn_AllCheck"]},
     "Users": {"file": "BookDream/Users.cs", "skip": BANNERS},

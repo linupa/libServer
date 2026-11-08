@@ -3021,6 +3021,434 @@ window.CLIB_FORMS = {
    }
   ]
  },
+ "SearchISBNDlg": {
+  "title": "도서 ISBN 검색",
+  "w": 590,
+  "h": 680,
+  "backColor": null,
+  "bold": false,
+  "children": [
+   {
+    "id": "btn_Search",
+    "type": "button",
+    "x": 467,
+    "y": 19,
+    "w": 110,
+    "h": 23,
+    "text": "검색"
+   },
+   {
+    "id": "txt_ISBNSearch",
+    "type": "text",
+    "x": 314,
+    "y": 20,
+    "w": 147,
+    "h": 21,
+    "back": "rgb(192, 255, 255)"
+   },
+   {
+    "id": "label4",
+    "type": "label",
+    "x": 9,
+    "y": 23,
+    "w": 67,
+    "h": 14,
+    "text": "도서목록",
+    "bold": true
+   },
+   {
+    "id": "label5",
+    "type": "label",
+    "x": 229,
+    "y": 23,
+    "w": 79,
+    "h": 14,
+    "text": "ISBN 검색",
+    "bold": true
+   },
+   {
+    "id": "booklist",
+    "type": "list",
+    "x": 8,
+    "y": 47,
+    "w": 570,
+    "h": 132
+   },
+   {
+    "id": "btn_CheckData",
+    "type": "button",
+    "x": 314,
+    "y": 187,
+    "w": 125,
+    "h": 31,
+    "text": "유효성검사"
+   },
+   {
+    "id": "btn_GetBookInfo",
+    "type": "button",
+    "x": 452,
+    "y": 187,
+    "w": 125,
+    "h": 31,
+    "text": "도서정보 가져오기"
+   },
+   {
+    "id": "txt_Detail",
+    "type": "text",
+    "x": 6,
+    "y": 227,
+    "w": 577,
+    "h": 118,
+    "readOnly": true,
+    "multiline": true
+   },
+   {
+    "id": "panel_info",
+    "type": "panel",
+    "x": 1,
+    "y": 351,
+    "w": 583,
+    "h": 163,
+    "children": [
+     {
+      "id": "label25",
+      "type": "label",
+      "x": 16,
+      "y": 3,
+      "w": 67,
+      "h": 22,
+      "text": "ISBN",
+      "align": "right",
+      "valign": "middle",
+      "bold": true
+     },
+     {
+      "id": "txt_isbn",
+      "type": "text",
+      "x": 86,
+      "y": 3,
+      "w": 128,
+      "h": 22
+     },
+     {
+      "id": "label27",
+      "type": "label",
+      "x": 217,
+      "y": 3,
+      "w": 67,
+      "h": 22,
+      "text": "총서명",
+      "align": "right",
+      "valign": "middle",
+      "bold": true
+     },
+     {
+      "id": "txt_totalname",
+      "type": "text",
+      "x": 287,
+      "y": 3,
+      "w": 279,
+      "h": 22
+     },
+     {
+      "id": "label28",
+      "type": "label",
+      "x": 16,
+      "y": 34,
+      "w": 67,
+      "h": 22,
+      "text": "★서명",
+      "align": "right",
+      "valign": "middle",
+      "bold": true,
+      "fore": "rgb(192, 0, 0)"
+     },
+     {
+      "id": "txt_bookname",
+      "type": "text",
+      "x": 86,
+      "y": 34,
+      "w": 316,
+      "h": 22
+     },
+     {
+      "id": "label29",
+      "type": "label",
+      "x": 408,
+      "y": 34,
+      "w": 67,
+      "h": 22,
+      "text": "서명권차",
+      "align": "right",
+      "valign": "middle",
+      "bold": true
+     },
+     {
+      "id": "txt_booknamenum",
+      "type": "text",
+      "x": 478,
+      "y": 34,
+      "w": 88,
+      "h": 22
+     },
+     {
+      "id": "label30",
+      "type": "label",
+      "x": 16,
+      "y": 67,
+      "w": 67,
+      "h": 22,
+      "text": "★저자",
+      "align": "right",
+      "valign": "middle",
+      "bold": true,
+      "fore": "rgb(192, 0, 0)"
+     },
+     {
+      "id": "txt_author",
+      "type": "text",
+      "x": 86,
+      "y": 67,
+      "w": 237,
+      "h": 22
+     },
+     {
+      "id": "label31",
+      "type": "label",
+      "x": 314,
+      "y": 67,
+      "w": 67,
+      "h": 22,
+      "text": "발행지",
+      "align": "right",
+      "valign": "middle",
+      "bold": true
+     },
+     {
+      "id": "txt_location",
+      "type": "text",
+      "x": 384,
+      "y": 67,
+      "w": 49,
+      "h": 22
+     },
+     {
+      "id": "label32",
+      "type": "label",
+      "x": 436,
+      "y": 67,
+      "w": 67,
+      "h": 22,
+      "text": "출판년도",
+      "align": "right",
+      "valign": "middle",
+      "bold": true
+     },
+     {
+      "id": "txt_year",
+      "type": "text",
+      "x": 506,
+      "y": 67,
+      "w": 60,
+      "h": 22
+     },
+     {
+      "id": "label33",
+      "type": "label",
+      "x": 34,
+      "y": 97,
+      "w": 49,
+      "h": 22,
+      "text": "출판사",
+      "align": "right",
+      "valign": "middle",
+      "bold": true
+     },
+     {
+      "id": "txt_publish",
+      "type": "text",
+      "x": 86,
+      "y": 97,
+      "w": 107,
+      "h": 22
+     },
+     {
+      "id": "label34",
+      "type": "label",
+      "x": 192,
+      "y": 97,
+      "w": 55,
+      "h": 22,
+      "text": "페이지",
+      "align": "right",
+      "valign": "middle",
+      "bold": true
+     },
+     {
+      "id": "txt_page",
+      "type": "text",
+      "x": 250,
+      "y": 97,
+      "w": 62,
+      "h": 22
+     },
+     {
+      "id": "label35",
+      "type": "label",
+      "x": 320,
+      "y": 97,
+      "w": 43,
+      "h": 22,
+      "text": "크기",
+      "align": "right",
+      "valign": "middle",
+      "bold": true
+     },
+     {
+      "id": "txt_size",
+      "type": "text",
+      "x": 366,
+      "y": 97,
+      "w": 76,
+      "h": 22
+     },
+     {
+      "id": "label36",
+      "type": "label",
+      "x": 448,
+      "y": 97,
+      "w": 37,
+      "h": 22,
+      "text": "가격",
+      "align": "right",
+      "valign": "middle",
+      "bold": true
+     },
+     {
+      "id": "txt_price",
+      "type": "text",
+      "x": 488,
+      "y": 97,
+      "w": 78,
+      "h": 22
+     },
+     {
+      "id": "label37",
+      "type": "label",
+      "x": 16,
+      "y": 128,
+      "w": 67,
+      "h": 22,
+      "text": "딸림자료",
+      "align": "right",
+      "valign": "middle",
+      "bold": true
+     },
+     {
+      "id": "txt_attach",
+      "type": "text",
+      "x": 86,
+      "y": 128,
+      "w": 168,
+      "h": 22
+     },
+     {
+      "id": "label42",
+      "type": "label",
+      "x": 255,
+      "y": 128,
+      "w": 81,
+      "h": 22,
+      "text": "★분류기호",
+      "align": "right",
+      "valign": "middle",
+      "bold": true,
+      "fore": "rgb(192, 0, 0)"
+     },
+     {
+      "id": "txt_category",
+      "type": "text",
+      "x": 339,
+      "y": 128,
+      "w": 94,
+      "h": 22
+     },
+     {
+      "id": "label44",
+      "type": "label",
+      "x": 434,
+      "y": 128,
+      "w": 67,
+      "h": 22,
+      "text": "청구권차",
+      "align": "right",
+      "valign": "middle",
+      "bold": true
+     },
+     {
+      "id": "txt_booknum",
+      "type": "text",
+      "x": 506,
+      "y": 128,
+      "w": 60,
+      "h": 22
+     }
+    ]
+   },
+   {
+    "id": "txt_Check",
+    "type": "text",
+    "x": 6,
+    "y": 525,
+    "w": 577,
+    "h": 75,
+    "readOnly": true,
+    "multiline": true
+   },
+   {
+    "id": "label1",
+    "type": "label",
+    "x": 6,
+    "y": 616,
+    "w": 478,
+    "h": 12,
+    "text": "※ 위 기능은 정확한 MARC 데이터가 아닌 일반 도서 정보를 기반으로 MARC를",
+    "bold": true,
+    "fore": "red"
+   },
+   {
+    "id": "label2",
+    "type": "label",
+    "x": 15,
+    "y": 635,
+    "w": 137,
+    "h": 12,
+    "text": " 생성하는 기능입니다.",
+    "bold": true,
+    "fore": "red"
+   },
+   {
+    "id": "btn_Close",
+    "type": "button",
+    "x": 489,
+    "y": 643,
+    "w": 95,
+    "h": 32,
+    "text": "닫기"
+   },
+   {
+    "id": "label3",
+    "type": "label",
+    "x": 20,
+    "y": 652,
+    "w": 467,
+    "h": 12,
+    "text": "정확한 도서 MARC가 생성되지 않을 수 있으니 반드시 데이터를 확인해주세요",
+    "bold": true,
+    "fore": "red"
+   }
+  ]
+ },
  "SearchMarc": {
   "title": "도서 불러오기",
   "w": 844,

@@ -79,6 +79,8 @@
       },
       // 국립중앙도서관 ISBN 검색 (server/isbn.py): the book's fields, or null when nothing is found
       lookupIsbn: isbn => get(`isbn/${enc(String(isbn).trim())}`),
+      // 도서 ISBN 검색 (SearchISBNDlg): every match, { by: "isbn" | "title", entries }
+      searchIsbn: q => get("isbn", { q }),
       searchBooks: ({ field, keyword, start, end }) =>
         (start !== undefined ? get("books", { start, end }) : get("books", { field, q: keyword })),
       allLoans: () => get("loans"),

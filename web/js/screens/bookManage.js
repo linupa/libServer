@@ -326,8 +326,10 @@ window.CLIB_LOGIC.BookManage = {
 
     // SearchISBN(): when the library has the ISBN already, CopyBookDlg offers its books as the
     // model for one more 복본 (here one question, for the highest 복본기호); otherwise, or when
-    // that is declined, SearchToISBN() looks it up on the 국립중앙도서관 and fills a new record.
-    // CLIB's other ISBN 검색 mode (SearchISBNDlg) used an API that no longer answers.
+    // that is declined, the National Library: with 도서관리설정 ISBN 검색 기본, 도서 ISBN 검색
+    // (SearchISBNDlg) lists its records to pick one; with 국립중앙도서관, SearchToISBN() fills
+    // a new record straight away.
+    let isbnStart = null;  // what 도서 ISBN 검색 opens with
     async function searchIsbn() {
       const isbn = $("txt_isbnSearch").value.trim().replace(/[\s-]/g, "");
       if (!isbn) return ctx.msgBox("검색할 ISBN을 입력해주세요.");
@@ -346,24 +348,45 @@ window.CLIB_LOGIC.BookManage = {
         }
       }
       if (!lib.lookupIsbn) return ctx.msgBox("국립중앙도서관 ISBN 검색은 서버에 연결된 경우에만 사용할 수 있습니다.");
+      const pick = Number(lib.settings.book.isbnSearch) !== 1;
       $("btn_isbnSearch").disabled = true;
       let found;
       try {
-        found = await lib.lookupIsbn(isbn);
+        found = pick ? await lib.searchIsbn(isbn) : await lib.lookupIsbn(isbn);
       } catch (e) {
         return ctx.msgBox(e.message, "ISBN 검색");
       } finally {
         $("btn_isbnSearch").disabled = false;
       }
+      if (pick) {
+        if (found.error) return ctx.msgBox(found.error);
+        if (!found.entries.length) return ctx.msgBox("검색결과가 없습니다.");
+        isbnStart = { query: isbn, found };
+        return ctx.openDialog("SearchISBNDlg");
+      }
       if (!found) return ctx.msgBox("검색 결과가 없습니다.");
+      fillFound(found);
+    }
+
+    // A record from the National Library becomes a new record, with its 저자기호
+    // (CreateAuthorCode(bBatch: true): quietly left empty when it can't be made)
+    function fillFound(found) {
       newRecord();
       writeForm({ ...blank(), ...found });
-      // CreateAuthorCode(bBatch: true): the 저자기호 too, quietly when it can't be made
       const code = authorCode.check(found.author, found.title, lib.settings.book.authorCode);
       if (!code.error) $("txt_authorcode").value = code.code;
       refreshMarc();
       $("txt_barcode").focus();
     }
+    const offIsbnStart = ctx.bus.on("isbnSearchStart", start => {
+      if (!ctx.box("booklist").isConnected) return offIsbnStart();
+      Object.assign(start, isbnStart);
+      isbnStart = null;
+    });
+    const offIsbnPicked = ctx.bus.on("isbnBookPicked", book => {
+      if (!ctx.box("booklist").isConnected) return offIsbnPicked();
+      fillFound(book);
+    });
 
     // ---- 전문가용: MARC text --------------------------------------------------
 

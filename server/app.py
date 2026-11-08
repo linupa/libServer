@@ -250,22 +250,42 @@ def kiosk_search():
         return jsonify(repo.kiosk_search(conn, request.args.get("field"), request.args.get("q", "")))
 
 
-@app.get("/api/isbn/<code>")
-def isbn_search(code):
-    """도서관리's ISBN 검색 on the 국립중앙도서관 (isbn.py); 404 when nothing is found."""
+def ask_national_library(fn, what):
+    """Run an isbn.py search: (result, None), or (None, error response) when it failed."""
     import xml.etree.ElementTree as ET
     import isbn
     try:
-        found = isbn.lookup(code)
+        return fn(), None
     except isbn.IsbnError as e:
-        return jsonify({"error": str(e)}), 502
+        return None, (jsonify({"error": str(e)}), 502)
     except (ValueError, ET.ParseError) as e:  # an answer that isn't the JSON / XML it should be
-        app.logger.warning("isbn %s: %s", code, e)
-        return jsonify({"error": "국립중앙도서관의 응답을 읽지 못했습니다.\n다시 검색해주세요."}), 502
+        app.logger.warning("isbn %s: %s", what, e)
+        return None, (jsonify({"error": "국립중앙도서관의 응답을 읽지 못했습니다.\n다시 검색해주세요."}), 502)
     except OSError as e:
-        app.logger.warning("isbn %s: %s", code, e)
-        return jsonify({"error": "국립중앙도서관에 연결하지 못했습니다.\n인터넷 연결을 확인해주세요."}), 502
+        app.logger.warning("isbn %s: %s", what, e)
+        return None, (jsonify({"error": "국립중앙도서관에 연결하지 못했습니다.\n인터넷 연결을 확인해주세요."}), 502)
+
+
+@app.get("/api/isbn/<code>")
+def isbn_lookup(code):
+    """도서관리's ISBN 검색 with 도서관리설정 국립중앙도서관 (isbn.lookup); 404 when nothing is found."""
+    import isbn
+    found, failed = ask_national_library(lambda: isbn.lookup(code), code)
+    if failed:
+        return failed
     return jsonify(found) if found else (jsonify(None), 404)
+
+
+@app.get("/api/isbn")
+def isbn_search():
+    """도서 ISBN 검색 (SearchISBNDlg): every match for ?q= (an ISBN, or a title when it finds
+    nothing); {by, entries}."""
+    import isbn
+    query = (request.args.get("q") or "").strip()
+    if not query:
+        return jsonify({"error": "검색할 ISBN을 입력해주세요."})
+    found, failed = ask_national_library(lambda: isbn.search(query), query)
+    return failed or jsonify(found)
 
 
 @app.get("/api/books")
